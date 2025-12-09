@@ -8,14 +8,15 @@ QMainWindow, QDialog, QWidget {
 QLabel { color: #2F3B4D; }
 QLabel#big_title { font-size: 42pt; font-weight: 800; color: #1D2A40; }
 QLabel#round_title {
-    font-size: 36pt;      /* больше, чем было */
-    font-weight: 800;     /* очень жирный */
-    color: #3A7AFE;       /* акцентный синий */
+    font-size: 32pt;
+    font-weight: 800;
+    color: #3A7AFE;
 }
+
 QLabel#timer_label {
-    font-size: 60pt;      /* чуть меньше, чем сейчас */
+    font-size: 56pt;
     font-weight: 700;
-    color: #1D2A40;       /* тёмный почти чёрный */
+    color: #1D2A40;
 }
 
 QPushButton {
@@ -58,14 +59,29 @@ QTableWidget, QTableView {
     border: none;
     color: #2F3B4D;
 }
-QTableWidget::item { padding: 10px 6px; }
+
+QTableWidget::item {
+    padding: 20px 18px;
+    font-size: 32pt;
+    font-weight: 800;
+    color: #1D2A40;
+    border-bottom: 2px solid rgba(29, 42, 64, 0.15);
+}
+
+/* у последней строки разделитель не рисуем */
+QTableWidget::item:last-child {
+    border-bottom: none;
+}
+
 QHeaderView::section {
     background: transparent;
-    color: #2F3B4D;
-    font-weight: 700;
-    padding: 8px;
+    color: #1D2A40;
+    font-size: 26pt;
+    font-weight: 800;
+    padding: 10px;
     border: none;
 }
+
 QTableCornerButton::section {
     background: transparent;
     border: none;
@@ -83,16 +99,6 @@ QLabel#question_label {
     font-weight: 800;
     color: #1D2A40;
 }
-
-QTableWidget::item {
-    padding: 14px 10px;
-    font-size: 24pt;
-    font-weight: 700;
-}
-QHeaderView::section {
-    font-size: 20pt;
-}
-
 QMenu {
     background: white;
     border: 1px solid #E6EDF8;
