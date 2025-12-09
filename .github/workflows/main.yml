@@ -3,6 +3,9 @@ name: Build Windows EXE
 on:
   release:
     types: [published]
+    
+permissions:
+  contents: write
 
 jobs:
   build-windows-exe:
