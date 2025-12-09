@@ -85,7 +85,7 @@ class MainWindow(QMainWindow):
         rb_layout = QVBoxLayout()
         rname_layout = QHBoxLayout()
         self.round_name = QLineEdit('Раунд 1')
-        rname_layout.addWidget(QLabel('Название:')); rname_layout.addWidget(self.round_name)
+        rname_layout.addWidget(QLabel('Вопрос:')); rname_layout.addWidget(self.round_name)
         rb_layout.addLayout(rname_layout)
 
         time_layout = QHBoxLayout()
@@ -238,7 +238,7 @@ class MainWindow(QMainWindow):
         self._on_tick()
 
     def _timer_text(self):
-        return f"{self.round_name.text()}: {self.timer.format_time(self.timer.remaining)}"
+        return self.timer.format_time(self.timer.remaining)
 
     def save_state(self):
         state = self.sm.build_state(self.tm, self.lg, self.th, self.timer, self.round_name.text())

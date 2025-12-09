@@ -7,8 +7,16 @@ QMainWindow, QDialog, QWidget {
 
 QLabel { color: #2F3B4D; }
 QLabel#big_title { font-size: 42pt; font-weight: 800; color: #1D2A40; }
-QLabel#round_title { font-size: 28pt; font-weight: 700; color: #1D2A40; }
-QLabel#timer_label { font-size: 84pt; font-weight: 900; color: #3A7AFE; }
+QLabel#round_title {
+    font-size: 36pt;      /* больше, чем было */
+    font-weight: 800;     /* очень жирный */
+    color: #3A7AFE;       /* акцентный синий */
+}
+QLabel#timer_label {
+    font-size: 60pt;      /* чуть меньше, чем сейчас */
+    font-weight: 700;
+    color: #1D2A40;       /* тёмный почти чёрный */
+}
 
 QPushButton {
     background-color: #3A7AFE;
