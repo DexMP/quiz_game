@@ -1,6 +1,7 @@
 # core/timer_controller.py
 from PySide6.QtCore import QTimer
 
+
 class TimerController:
     def __init__(self):
         self.remaining = 0
@@ -18,7 +19,7 @@ class TimerController:
         self._finished_cb = finished
         self._qtimer.start()
         if self._tick_cb:
-            self._tick_cb()  # сразу обновляем UI
+            self._tick_cb()
 
     def toggle_pause(self):
         if self.running:

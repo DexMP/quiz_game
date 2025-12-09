@@ -1,9 +1,23 @@
 # ui/main_window.py
 import os
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QLineEdit, QSpinBox, QGroupBox, QPlainTextEdit,
-    QTableWidget, QTableWidgetItem, QHeaderView, QMessageBox, QFileDialog, QMenu
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QPushButton,
+    QLabel,
+    QLineEdit,
+    QSpinBox,
+    QGroupBox,
+    QPlainTextEdit,
+    QTableWidget,
+    QTableWidgetItem,
+    QHeaderView,
+    QMessageBox,
+    QFileDialog,
+    QMenu,
 )
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction
@@ -15,17 +29,17 @@ from core.timer_controller import TimerController
 from core.theme_manager import ThemeManager
 from core.state_manager import StateManager
 from core.logger import Logger
-
+from assets.styles import AURORA_LIGHT_PRO, AURORA_DARK
 from core.update_checker import fetch_latest_release
 from core.version import APP_VERSION
 
+APP_STATE = "quiz_state.json"
 
-APP_STATE = 'quiz_state.json'
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('Quiz Admin — Aurora Light')
+        self.setWindowTitle("Quiz Admin — Aurora Light")
         self.resize(1200, 760)
 
         # core
@@ -45,25 +59,29 @@ class MainWindow(QMainWindow):
         body = QHBoxLayout()
         ol.addLayout(body)
 
-        # left column - teams and history
+        # левая колонка — команды и история
         left_col = QVBoxLayout()
-        teams_box = QGroupBox('Команды')
+        teams_box = QGroupBox("Команды")
         tb_layout = QVBoxLayout(teams_box)
         top_row = QHBoxLayout()
-        self.btn_add = QPushButton('Добавить команду')
-        self.btn_remove = QPushButton('Удалить')
-        top_row.addWidget(self.btn_add); top_row.addWidget(self.btn_remove); top_row.addStretch()
+        self.btn_add = QPushButton("Добавить команду")
+        self.btn_remove = QPushButton("Удалить")
+        top_row.addWidget(self.btn_add)
+        top_row.addWidget(self.btn_remove)
+        top_row.addStretch()
         tb_layout.addLayout(top_row)
 
-        # card container for table
+        # таблица команд
         self.table_card = QWidget()
-        self.table_card.setProperty('role', 'card')
+        self.table_card.setProperty("role", "card")
         card_layout = QVBoxLayout(self.table_card)
         card_layout.setContentsMargins(6, 6, 6, 6)
         self.table = QTableWidget(0, 2)
-        self.table.setHorizontalHeaderLabels(['Команда', 'Очки'])
+        self.table.setHorizontalHeaderLabels(["Команда", "Очки"])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeToContents
+        )
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.open_menu)
@@ -71,66 +89,94 @@ class MainWindow(QMainWindow):
         tb_layout.addWidget(self.table_card)
         left_col.addWidget(teams_box, 3)
 
-        hist_box = QGroupBox('История')
+        hist_box = QGroupBox("История")
         hb_layout = QVBoxLayout()
-        self.hist = QPlainTextEdit(); self.hist.setReadOnly(True)
-        hb_layout.addWidget(self.hist); hist_box.setLayout(hb_layout)
+        self.hist = QPlainTextEdit()
+        self.hist.setReadOnly(True)
+        hb_layout.addWidget(self.hist)
+        hist_box.setLayout(hb_layout)
         left_col.addWidget(hist_box, 1)
 
         body.addLayout(left_col, 3)
 
-        # right column - controls
+        # правая колонка — раунд и управление
         right_col = QVBoxLayout()
-        round_box = QGroupBox('Раунд')
+        round_box = QGroupBox("Раунд")
         rb_layout = QVBoxLayout()
+
+        # имя раунда
         rname_layout = QHBoxLayout()
-        self.round_name = QLineEdit('Раунд 1')
-        rname_layout.addWidget(QLabel('Вопрос:')); rname_layout.addWidget(self.round_name)
+        self.round_name = QLineEdit("Раунд 1")
+        rname_layout.addWidget(QLabel("Название раунда:"))
+        rname_layout.addWidget(self.round_name)
         rb_layout.addLayout(rname_layout)
 
+        # вопрос
+        q_layout = QHBoxLayout()
+        self.question_text = QLineEdit("")
+        q_layout.addWidget(QLabel("Вопрос:"))
+        q_layout.addWidget(self.question_text)
+        rb_layout.addLayout(q_layout)
+
+        # длительность
         time_layout = QHBoxLayout()
-        self.spin_minutes = QSpinBox(); self.spin_minutes.setRange(0, 999); self.spin_minutes.setValue(1)
-        self.spin_seconds = QSpinBox(); self.spin_seconds.setRange(0, 59); self.spin_seconds.setValue(0)
-        time_layout.addWidget(QLabel('Мин:')); time_layout.addWidget(self.spin_minutes)
-        time_layout.addWidget(QLabel('Сек:')); time_layout.addWidget(self.spin_seconds)
+        self.spin_minutes = QSpinBox()
+        self.spin_minutes.setRange(0, 999)
+        self.spin_minutes.setValue(1)
+        self.spin_seconds = QSpinBox()
+        self.spin_seconds.setRange(0, 59)
+        self.spin_seconds.setValue(0)
+        time_layout.addWidget(QLabel("Мин:"))
+        time_layout.addWidget(self.spin_minutes)
+        time_layout.addWidget(QLabel("Сек:"))
+        time_layout.addWidget(self.spin_seconds)
         rb_layout.addLayout(time_layout)
 
+        # кнопки таймера
         btns = QHBoxLayout()
-        self.btn_start = QPushButton('Старт'); self.btn_pause = QPushButton('Пауза'); self.btn_reset = QPushButton('Сброс')
-        btns.addWidget(self.btn_start); btns.addWidget(self.btn_pause); btns.addWidget(self.btn_reset)
+        self.btn_start = QPushButton("Старт")
+        self.btn_pause = QPushButton("Пауза")
+        self.btn_reset = QPushButton("Сброс")
+        btns.addWidget(self.btn_start)
+        btns.addWidget(self.btn_pause)
+        btns.addWidget(self.btn_reset)
         rb_layout.addLayout(btns)
 
-        # pick image & show big screen
+        # картинка и big screen
         img_row = QHBoxLayout()
-        self.btn_pick_image = QPushButton('Выбрать картинку')
-        self.btn_show_big = QPushButton('Показать большой экран')
-        img_row.addWidget(self.btn_pick_image); img_row.addWidget(self.btn_show_big)
+        self.btn_pick_image = QPushButton("Выбрать картинку")
+        self.btn_show_big = QPushButton("Показать большой экран")
+        img_row.addWidget(self.btn_pick_image)
+        img_row.addWidget(self.btn_show_big)
         rb_layout.addLayout(img_row)
 
         round_box.setLayout(rb_layout)
         right_col.addWidget(round_box)
 
+        # IO + обновление + тема
         io_box = QHBoxLayout()
-        self.btn_save = QPushButton('Сохранить')
-        self.btn_load = QPushButton('Загрузить')
-        self.btn_check_update = QPushButton(f'Проверить обновление (v{APP_VERSION})')
+        self.btn_save = QPushButton("Сохранить")
+        self.btn_load = QPushButton("Загрузить")
+        self.btn_check_update = QPushButton(
+            f"Проверить обновление (v{APP_VERSION})"
+        )
+        self.btn_theme = QPushButton("Тёмная тема")
         io_box.addWidget(self.btn_save)
         io_box.addWidget(self.btn_load)
         io_box.addWidget(self.btn_check_update)
+        io_box.addWidget(self.btn_theme)
         right_col.addLayout(io_box)
         right_col.addStretch()
         body.addLayout(right_col, 2)
 
-        # big screen instance
+        # big screen
         self.big = BigScreenWindow()
 
-        # current image path
+        # состояние
         self.current_image = None
-
-        # запомненный монитор
         self.big_screen_index = None
 
-        # connections
+        # сигналы
         self.btn_add.clicked.connect(self.add_team)
         self.btn_remove.clicked.connect(self.remove_selected)
         self.btn_start.clicked.connect(self.start_timer)
@@ -141,43 +187,61 @@ class MainWindow(QMainWindow):
         self.btn_save.clicked.connect(self.save_state)
         self.btn_load.clicked.connect(self.load_state_dialog)
         self.btn_check_update.clicked.connect(self.check_update)
+        self.btn_theme.clicked.connect(self.toggle_theme)
 
-        # синхронизация заголовка раунда с big screen
         self.round_name.textChanged.connect(self.big.set_round_title)
+        self.question_text.textChanged.connect(self.set_question_text)
 
-        # ui sync
+        # периодический рефреш
         self.ui_timer = QTimer(self)
         self.ui_timer.setInterval(400)
         self.ui_timer.timeout.connect(self.refresh)
         self.ui_timer.start()
 
-        # try load existing
+        # пробуем загрузить состояние
         if os.path.exists(APP_STATE):
-            try: self.load_state(APP_STATE)
-            except Exception: pass
+            try:
+                self.load_state(APP_STATE)
+            except Exception:
+                pass
+
+    # -------- команды и таблица --------
 
     def add_team(self):
         name = ask_team_name(self)
-        if not name: return
-        self.tm.add_team(name); self.lg.log(f'Добавлена команда: {name}'); self.refresh()
+        if not name:
+            return
+        self.tm.add_team(name)
+        self.lg.log(f"Добавлена команда: {name}")
+        self.refresh()
 
     def remove_selected(self):
-        rows = sorted({i.row() for i in self.table.selectedIndexes()}, reverse=True)
+        rows = sorted(
+            {i.row() for i in self.table.selectedIndexes()}, reverse=True
+        )
         if not rows:
-            QMessageBox.information(self, 'Удаление', 'Выберите хотя бы одну команду.')
+            QMessageBox.information(
+                self, "Удаление", "Выберите хотя бы одну команду."
+            )
             return
         for r in rows:
             self.tm.remove_by_index(r)
-        self.lg.log('Удалены команды')
+        self.lg.log("Удалены команды")
         self.refresh()
 
     def open_menu(self, pos):
         row = self.table.indexAt(pos).row()
-        if row < 0: return
+        if row < 0:
+            return
         m = QMenu(self)
-        for txt, val in [('+1',1),('+5',5),('-1',-1),('-5',-5)]:
-            act = QAction(txt, self); act.triggered.connect(lambda _, v=val: self.tm.adjust(row, v)); m.addAction(act)
-        m.exec(self.table.viewport().mapToGlobal(pos)); self.refresh()
+        for txt, val in [("+1", 1), ("+5", 5), ("-1", -1), ("-5", -5)]:
+            act = QAction(txt, self)
+            act.triggered.connect(
+                lambda _, v=val: self.tm.adjust(row, v)
+            )
+            m.addAction(act)
+        m.exec(self.table.viewport().mapToGlobal(pos))
+        self.refresh()
 
     def set_question_text(self, text: str):
         self.big.set_question(text)
@@ -186,8 +250,8 @@ class MainWindow(QMainWindow):
         teams = self.tm.teams
         self.table.setRowCount(len(teams))
         for i, t in enumerate(teams):
-            self.table.setItem(i, 0, QTableWidgetItem(t['name']))
-            sc = QTableWidgetItem(str(t['score']))
+            self.table.setItem(i, 0, QTableWidgetItem(t["name"]))
+            sc = QTableWidgetItem(str(t["score"]))
             sc.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(i, 1, sc)
             self.table.setRowHeight(i, 54)
@@ -197,11 +261,20 @@ class MainWindow(QMainWindow):
             self.big.set_round_image(self.current_image)
         self.big.set_round_title(self.round_name.text())
 
+    # -------- big screen / изображение --------
 
     def pick_image(self):
-        p, _ = QFileDialog.getOpenFileName(self, 'Выберите изображение', '', 'Images (*.png *.jpg *.jpeg *.bmp)')
-        if not p: return
-        self.current_image = p; self.lg.log(f'Выбрано изображение: {os.path.basename(p)}'); self.big.set_round_image(p)
+        p, _ = QFileDialog.getOpenFileName(
+            self,
+            "Выберите изображение",
+            "",
+            "Images (*.png *.jpg *.jpeg *.bmp)",
+        )
+        if not p:
+            return
+        self.current_image = p
+        self.lg.log(f"Выбрано изображение: {os.path.basename(p)}")
+        self.big.set_round_image(p)
 
     def show_big(self):
         if self.big_screen_index is None:
@@ -217,90 +290,141 @@ class MainWindow(QMainWindow):
         self.big.setGeometry(scr)
         self.big.showFullScreen()
 
+    # -------- таймер --------
 
     def start_timer(self):
-        sec = self.spin_minutes.value()*60 + self.spin_seconds.value()
-        if sec <= 0: QMessageBox.warning(self, 'Таймер', 'Установите длительность > 0.'); return
-        self.timer.start(sec, callback=self._on_tick, finished=self._on_finish); self.lg.log('Таймер старт')
+        sec = self.spin_minutes.value() * 60 + self.spin_seconds.value()
+        if sec <= 0:
+            QMessageBox.warning(
+                self, "Таймер", "Установите длительность > 0."
+            )
+            return
+        self.timer.start(sec, callback=self._on_tick, finished=self._on_finish)
+        self.lg.log("Таймер старт")
 
     def pause_timer(self):
-        self.timer.toggle_pause(); self.lg.log('Пауза/Продолжение')
+        self.timer.toggle_pause()
+        if self.timer.running:
+            self.btn_pause.setText("Пауза")
+            self.lg.log("Таймер продолжен")
+        else:
+            self.btn_pause.setText("Продолжить")
+            self.lg.log("Таймер на паузе")
 
     def reset_timer(self):
-        self.timer.reset(); self.lg.log('Таймер сброшен'); self._on_tick()
+        self.timer.reset()
+        self.lg.log("Таймер сброшен")
+        self.btn_pause.setText("Пауза")
+        self._on_tick()
 
     def _on_tick(self):
-        txt = self._timer_text() if self.timer.running else '--:--'
+        txt = self._timer_text() if self.timer.running else "--:--"
         self.big.update_timer(txt)
 
     def _on_finish(self):
-        self.lg.log('Таймер завершён')
+        self.lg.log("Таймер завершён")
         self._on_tick()
 
     def _timer_text(self):
         return self.timer.format_time(self.timer.remaining)
 
+    # -------- состояние --------
+
     def save_state(self):
-        state = self.sm.build_state(self.tm, self.lg, self.th, self.timer, self.round_name.text())
-        try: self.sm.save(APP_STATE, state); self.lg.log('Состояние сохранено')
-        except Exception as e: QMessageBox.critical(self, 'Ошибка', str(e))
-
-    def check_update(self):
-        from core.update_checker import fetch_latest_release
-        from core.version import APP_VERSION
-
+        state = self.sm.build_state(
+            self.tm,
+            self.lg,
+            self.th,
+            self.timer,
+            self.round_name.text(),
+        )
         try:
-            info = fetch_latest_release()
+            self.sm.save(APP_STATE, state)
+            self.lg.log("Состояние сохранено")
         except Exception as e:
-            QMessageBox.warning(
-                self,
-                "Проверка обновлений",
-                f"Не удалось проверить обновление:\n{e}"
-            )
-            return
-
-        if info.has_update:
-            msg = QMessageBox(self)
-            msg.setWindowTitle("Доступно обновление")
-            msg.setText(f"Текущая версия: {info.current}\nНовая версия: {info.latest}")
-            msg.setInformativeText("Открыть страницу релиза в браузере?")
-            msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-            msg.setIcon(QMessageBox.Information)
-            if msg.exec() == QMessageBox.Yes and info.url:
-                import webbrowser
-                webbrowser.open(info.url)
-        else:
-            QMessageBox.information(
-                self,
-                "Проверка обновлений",
-                f"Установлена актуальная версия ({APP_VERSION})."
-            )
-
+            QMessageBox.critical(self, "Ошибка", str(e))
 
     def load_state(self, path):
         data = self.sm.load(path)
-        self.tm.load_from(data.get('teams', []))
-        self.lg.load_from(data.get('history', []))
+        self.tm.load_from(data.get("teams", []))
+        self.lg.load_from(data.get("history", []))
 
-        rn = data.get('round_name')
+        rn = data.get("round_name")
         if rn:
             self.round_name.setText(rn)
 
-        remaining = data.get('remaining')
+        remaining = data.get("remaining")
         if isinstance(remaining, int) and remaining >= 0:
             self.timer.remaining = remaining
             mins, secs = divmod(remaining, 60)
             self.spin_minutes.setValue(mins)
             self.spin_seconds.setValue(secs)
 
-        theme = data.get('theme')
+        theme = data.get("theme")
         if theme:
             self.th.apply(theme)
-            # сюда можно добавить применение темы к окнам
 
+        self.apply_theme_from_state()
         self.refresh()
 
-    
     def load_state_dialog(self):
-        p, _ = QFileDialog.getOpenFileName(self, 'Загрузить состояние', '', 'JSON files (*.json)')
-        if p: self.load_state(p)
+        p, _ = QFileDialog.getOpenFileName(
+            self, "Загрузить состояние", "", "JSON files (*.json)"
+        )
+        if p:
+            self.load_state(p)
+
+    # -------- тема --------
+
+    def apply_theme_from_state(self):
+        mode = self.th.get().get("mode", "light")
+        app = QApplication.instance()
+        if mode == "dark":
+            app.setStyleSheet(AURORA_DARK)
+            self.btn_theme.setText("Светлая тема")
+        else:
+            app.setStyleSheet(AURORA_LIGHT_PRO)
+            self.btn_theme.setText("Тёмная тема")
+
+    def toggle_theme(self):
+        self.th.toggle_mode()
+        self.apply_theme_from_state()
+
+    # -------- обновление --------
+
+    def check_update(self):
+        try:
+            info = fetch_latest_release()
+        except Exception as e:
+            QMessageBox.warning(
+                self,
+                "Проверка обновлений",
+                f"Не удалось проверить обновление:\n{e}",
+            )
+            return
+
+        if info.has_update:
+            msg = QMessageBox(self)
+            msg.setWindowTitle("Доступно обновление")
+            msg.setText(
+                f"Текущая версия: {info.current}\nНовая версия: {info.latest}"
+            )
+            msg.setInformativeText("Открыть страницу релиза в браузере?")
+            msg.setIcon(QMessageBox.Information)
+            msg.setMinimumWidth(420)
+
+            yes_button = msg.addButton("Да", QMessageBox.AcceptRole)
+            msg.addButton("Закрыть", QMessageBox.RejectRole)
+
+            msg.exec()
+
+            if msg.clickedButton() is yes_button and info.url:
+                import webbrowser
+
+                webbrowser.open(info.url)
+        else:
+            QMessageBox.information(
+                self,
+                "Проверка обновлений",
+                f"Установлена актуальная версия ({APP_VERSION}).",
+            )

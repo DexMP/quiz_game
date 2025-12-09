@@ -10,10 +10,12 @@ from PySide6.QtWidgets import (
     QTableWidgetItem,
     QHeaderView,
     QSizePolicy,
-    QSpacerItem
+    QSpacerItem,
 )
 from PySide6.QtCore import Qt, Slot
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QPixmap, QFont
+
+from ui.snow_overlay import SnowOverlay
 
 
 class BigScreenWindow(QMainWindow):
@@ -28,14 +30,14 @@ class BigScreenWindow(QMainWindow):
         layout.setContentsMargins(40, 30, 40, 30)
         layout.setSpacing(18)
 
-        # Вопрос (крупный текст вверху)
+        # вопрос (крупный текст вверху, можно оставить пустым)
         self.question_label = QLabel("")
         self.question_label.setObjectName("question_label")
         self.question_label.setAlignment(Qt.AlignCenter)
         self.question_label.setWordWrap(True)
         self.question_label.setSizePolicy(
             QSizePolicy.Expanding,
-            QSizePolicy.Preferred
+            QSizePolicy.Preferred,
         )
         layout.addWidget(self.question_label)
 
@@ -45,26 +47,24 @@ class BigScreenWindow(QMainWindow):
         self.round_title.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.round_title)
 
-        # Большой таймер
+        # Таймер
         self.timer_label = QLabel("--:--")
         self.timer_label.setObjectName("timer_label")
         self.timer_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.timer_label)
 
-        # Картинка раунда (если есть)
+        # Картинка раунда
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignCenter)
         self.image_label.setVisible(False)
         layout.addWidget(self.image_label)
 
-        # Пустое пространство, чтобы таблица ушла к низу
-        layout.addItem(QSpacerItem(
-            0, 0,
-            QSizePolicy.Minimum,
-            QSizePolicy.Expanding
-        ))
+        # Спейсер, чтобы таблица ушла к низу
+        layout.addItem(
+            QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        )
 
-        # Карточка с таблицей команд внизу
+        # Карточка с таблицей команд
         self.card = QWidget()
         self.card.setProperty("role", "card")
         cl = QVBoxLayout(self.card)
@@ -72,34 +72,43 @@ class BigScreenWindow(QMainWindow):
 
         self.table = QTableWidget(0, 2)
         self.table.setHorizontalHeaderLabels(["Команда", "Очки"])
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.Stretch
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeToContents
+        )
         self.table.verticalHeader().setVisible(False)
         self.table.setShowGrid(False)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
-        # фиксированная высота под ~6 жирных строк
-        self.table.setFixedHeight(260)
+        table_font = QFont()
+        table_font.setPointSize(28)
+        table_font.setBold(True)
+        self.table.setFont(table_font)
+
+        self.table.setFixedHeight(6 * 110 + 70)
 
         cl.addWidget(self.table)
+        self.card.setFixedHeight(6 * 110 + 70)
         layout.addWidget(self.card)
 
         self.current_image = None
 
-    # ====== публичные методы обновления ======
+        # снежный оверлей
+        self.snow = SnowOverlay(self)
+        self.snow.setGeometry(self.rect())
+        self.snow.raise_()
 
     @Slot(list)
     def update_scores(self, teams):
-        """Обновление списка команд и очков (до 6 строк, крупные)."""
         self.table.setRowCount(len(teams))
         for i, t in enumerate(teams):
             name_item = QTableWidgetItem(t["name"])
             score_item = QTableWidgetItem(str(t["score"]))
             score_item.setTextAlignment(Qt.AlignCenter)
-
-            # высокие строки для читаемости на расстоянии
-            self.table.setRowHeight(i, 60)
-
+            self.table.setRowHeight(i, 110)
             self.table.setItem(i, 0, name_item)
             self.table.setItem(i, 1, score_item)
 
@@ -113,7 +122,6 @@ class BigScreenWindow(QMainWindow):
 
     @Slot(str)
     def set_question(self, text):
-        """Текст текущего вопроса в верхней части экрана."""
         self.question_label.setText(text)
 
     def set_round_image(self, path):
@@ -122,7 +130,6 @@ class BigScreenWindow(QMainWindow):
             self.image_label.clear()
             self.image_label.setVisible(False)
             return
-
         pix = QPixmap(path)
         scaled = pix.scaled(
             self.width() * 0.6,
@@ -135,5 +142,6 @@ class BigScreenWindow(QMainWindow):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
+        self.snow.setGeometry(self.rect())
         if self.current_image:
             self.set_round_image(self.current_image)
