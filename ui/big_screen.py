@@ -70,12 +70,18 @@ class BigScreenWindow(QMainWindow):
         self.table.verticalHeader().setVisible(False)
         self.table.setShowGrid(False)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        
+        # Полностью отключаем скроллинг
         self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.table.setVerticalScrollMode(QTableWidget.ScrollPerPixel)
+        self.table.setHorizontalScrollMode(QTableWidget.ScrollPerPixel)
+        
         self.table.setSelectionMode(QTableWidget.NoSelection)
         self.table.setFocusPolicy(Qt.NoFocus)
 
-        # фиксированная высота строк и таблицы
-        self.row_height = 110
+        # Увеличенная высота строк и таблицы
+        self.row_height = 95  # было 75, увеличил до 95
         self.max_rows = 6
 
         table_font = QFont()
@@ -89,11 +95,11 @@ class BigScreenWindow(QMainWindow):
 
         # Рассчитываем и устанавливаем фиксированную высоту таблицы
         header_height = self.table.horizontalHeader().height()
-        total_table_height = header_height + (self.max_rows * self.row_height) + 4  # +4 на borders
+        total_table_height = header_height + (self.max_rows * self.row_height) + 4
         self.table.setFixedHeight(total_table_height)
         
         # Фиксируем высоту карточки
-        self.card.setFixedHeight(total_table_height + 20)  # +20 на отступы карточки
+        self.card.setFixedHeight(total_table_height + 20)
 
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -111,19 +117,45 @@ class BigScreenWindow(QMainWindow):
     @Slot(list)
     def update_scores(self, teams):
         self.table.setRowCount(len(teams))
+        
+        # Проверяем, есть ли у кого-то очки больше 0
+        game_started = any(t["score"] > 0 for t in teams)
+        
+        # Эмодзи для мест
+        medals = {
+            0: "👑",  # 1 место - корона
+            1: "🥈",  # 2 место - серебряная медаль
+            2: "🥉",  # 3 место - бронзовая медаль
+            5: "🤡"   # 6 место - клоунская шляпа
+        }
+        
+        # Создаем шрифт для элементов
+        item_font = QFont()
+        item_font.setPointSize(32)
+        item_font.setBold(True)
+        item_font.setWeight(QFont.ExtraBold)
+        
         for i, t in enumerate(teams):
             num_item = QTableWidgetItem(str(i + 1))
             num_item.setTextAlignment(Qt.AlignCenter)
+            num_item.setFont(item_font)
 
-            name_item = QTableWidgetItem(t["name"])
+            # Добавляем эмодзи к названию команды, если игра началась
+            team_name = t["name"]
+            if game_started and i in medals:
+                team_name = f"{medals[i]} {team_name}"
+            
+            name_item = QTableWidgetItem(team_name)
+            name_item.setFont(item_font)
+            
             score_item = QTableWidgetItem(str(t["score"]))
             score_item.setTextAlignment(Qt.AlignCenter)
+            score_item.setFont(item_font)
 
             self.table.setItem(i, 0, num_item)
             self.table.setItem(i, 1, name_item)
             self.table.setItem(i, 2, score_item)
             self.table.setRowHeight(i, self.row_height)
-
 
     @Slot(str)
     def update_timer(self, text):
@@ -154,3 +186,7 @@ class BigScreenWindow(QMainWindow):
         self.snow.setGeometry(self.rect())
         if self.current_image:
             self.set_round_image(self.current_image)
+
+    # Блокировка скроллинга
+    def wheelEvent(self, event):
+        event.ignore()

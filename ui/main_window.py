@@ -71,7 +71,7 @@ class MainWindow(QMainWindow):
         top_row.addStretch()
         tb_layout.addLayout(top_row)
 
-        # таблица команд
+        # таблица команд (2 колонки: Команда, Очки)
         self.table_card = QWidget()
         self.table_card.setProperty("role", "card")
         card_layout = QVBoxLayout(self.table_card)
@@ -79,9 +79,7 @@ class MainWindow(QMainWindow):
         self.table = QTableWidget(0, 2)
         self.table.setHorizontalHeaderLabels(["Команда", "Очки"])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(
-            1, QHeaderView.ResizeToContents
-        )
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.open_menu)
@@ -244,8 +242,21 @@ class MainWindow(QMainWindow):
                 self, "Удаление", "Выберите хотя бы одну команду."
             )
             return
+        
+        # Получаем имена команд из выбранных строк (учитываем сортировку)
+        sorted_teams = self.tm.get_sorted()
+        teams_to_remove = []
         for r in rows:
-            self.tm.remove_by_index(r)
+            if r < len(sorted_teams):
+                teams_to_remove.append(sorted_teams[r]["name"])
+        
+        # Удаляем команды по именам
+        for name in teams_to_remove:
+            for idx, team in enumerate(self.tm.teams):
+                if team["name"] == name:
+                    self.tm.remove_by_index(idx)
+                    break
+        
         self.lg.log("Удалены команды")
         self.refresh()
 
@@ -253,11 +264,28 @@ class MainWindow(QMainWindow):
         row = self.table.indexAt(pos).row()
         if row < 0:
             return
+        
+        # Получаем имя команды из отсортированного списка
+        sorted_teams = self.tm.get_sorted()
+        if row >= len(sorted_teams):
+            return
+        team_name = sorted_teams[row]["name"]
+        
+        # Находим индекс в оригинальном списке
+        original_idx = None
+        for idx, team in enumerate(self.tm.teams):
+            if team["name"] == team_name:
+                original_idx = idx
+                break
+        
+        if original_idx is None:
+            return
+        
         m = QMenu(self)
         for txt, val in [("+1", 1), ("+5", 5), ("-1", -1), ("-5", -5)]:
             act = QAction(txt, self)
             act.triggered.connect(
-                lambda _, v=val: self.tm.adjust(row, v)
+                lambda _, v=val, i=original_idx: self.tm.adjust(i, v)
             )
             m.addAction(act)
         m.exec(self.table.viewport().mapToGlobal(pos))
@@ -267,16 +295,24 @@ class MainWindow(QMainWindow):
         self.big.set_question(text)
 
     def refresh(self):
-        teams = self.tm.teams
-        self.table.setRowCount(len(teams))
-        for i, t in enumerate(teams):
-            self.table.setItem(i, 0, QTableWidgetItem(t["name"]))
-            sc = QTableWidgetItem(str(t["score"]))
-            sc.setTextAlignment(Qt.AlignCenter)
-            self.table.setItem(i, 1, sc)
+        # Используем отсортированный список команд
+        sorted_teams = self.tm.get_sorted()
+        self.table.setRowCount(len(sorted_teams))
+        
+        for i, t in enumerate(sorted_teams):
+            # Название команды
+            name_item = QTableWidgetItem(t["name"])
+            self.table.setItem(i, 0, name_item)
+            
+            # Очки
+            score_item = QTableWidgetItem(str(t["score"]))
+            score_item.setTextAlignment(Qt.AlignCenter)
+            self.table.setItem(i, 1, score_item)
+            
             self.table.setRowHeight(i, 54)
+        
         self.hist.setPlainText(self.lg.get_text())
-        self.big.update_scores(self.tm.get_sorted())
+        self.big.update_scores(sorted_teams)
         if self.current_image:
             self.big.set_round_image(self.current_image)
 
