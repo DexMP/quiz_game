@@ -32,8 +32,14 @@ QPushButton {
     border-radius: 10px;
     padding: 10px 14px;
     font-weight: 600;
+    outline: none;
 }
 QPushButton:hover { background-color: #2f66e6; }
+QPushButton:focus { 
+    background-color: #2f66e6;
+    outline: none;
+    border: 2px solid #1D5DD9;
+}
 QPushButton#ghost {
     background: transparent;
     color: #2F3B4D;
@@ -46,7 +52,13 @@ QLineEdit, QSpinBox, QComboBox, QPlainTextEdit {
     border-radius: 8px;
     padding: 6px;
     color: #2F3B4D;
+    outline: none;
 }
+QLineEdit:focus, QSpinBox:focus, QComboBox:focus, QPlainTextEdit:focus {
+    border: 2px solid #3A7AFE;
+    outline: none;
+}
+
 QGroupBox {
     background: white;
     border: 1px solid #E6EDF8;
@@ -65,19 +77,36 @@ QTableWidget, QTableView {
     background: transparent;
     border: none;
     color: #2F3B4D;
+    gridline-color: rgba(29, 42, 64, 0.15);
+    outline: none;
+    selection-background-color: transparent;
 }
 
-/* строки таблицы команд */
+QTableWidget:focus {
+    outline: none;
+    border: none;
+}
+
 QTableWidget::item {
     padding: 20px 18px;
     font-size: 32pt;
     font-weight: 800;
     color: #1D2A40;
+    border: none;
     border-bottom: 2px solid rgba(29, 42, 64, 0.15);
+    outline: none;
 }
-/* у последней строки без разделителя */
-QTableWidget::item:last-child {
-    border-bottom: none;
+
+QTableWidget::item:selected {
+    background-color: rgba(58, 122, 254, 0.15);
+    color: #1D2A40;
+    outline: none;
+}
+
+QTableWidget::item:focus {
+    outline: none;
+    border: none;
+    border-bottom: 2px solid rgba(29, 42, 64, 0.15);
 }
 
 QHeaderView::section {
@@ -87,6 +116,8 @@ QHeaderView::section {
     font-weight: 800;
     padding: 10px;
     border: none;
+    border-bottom: 2px solid rgba(29, 42, 64, 0.15);
+    outline: none;
 }
 QTableCornerButton::section {
     background: transparent;
@@ -98,14 +129,20 @@ QWidget[role="card"] {
     border-radius: 12px;
     border: 1px solid #E6EDF8;
 }
-QWidget[role="card"] QTableWidget { padding: 8px; }
+QWidget[role="card"] QTableWidget { 
+    padding: 8px;
+    outline: none;
+}
 
 QMenu {
     background: white;
     border: 1px solid #E6EDF8;
     color: #2F3B4D;
 }
-QMenu::item:selected { background: #F0F5FF; }
+QMenu::item:selected { 
+    background: #F0F5FF;
+    color: #2F3B4D;
+}
 
 QScrollBar:vertical {
     background: transparent;
@@ -152,8 +189,14 @@ QPushButton {
     border-radius: 10px;
     padding: 10px 14px;
     font-weight: 600;
+    outline: none;
 }
 QPushButton:hover { background-color: #1b65b6; }
+QPushButton:focus {
+    background-color: #1b65b6;
+    outline: none;
+    border: 2px solid #4EA4FF;
+}
 
 QLineEdit, QSpinBox, QComboBox, QPlainTextEdit {
     background: #161B22;
@@ -161,7 +204,13 @@ QLineEdit, QSpinBox, QComboBox, QPlainTextEdit {
     border-radius: 8px;
     padding: 6px;
     color: #F4F6FB;
+    outline: none;
 }
+QLineEdit:focus, QSpinBox:focus, QComboBox:focus, QPlainTextEdit:focus {
+    border: 2px solid #2381E9;
+    outline: none;
+}
+
 QGroupBox {
     background: #161B22;
     border: 1px solid #30363D;
@@ -180,6 +229,14 @@ QTableWidget, QTableView {
     background: transparent;
     border: none;
     color: #F4F6FB;
+    gridline-color: rgba(240, 246, 252, 0.18);
+    outline: none;
+    selection-background-color: transparent;
+}
+
+QTableWidget:focus {
+    outline: none;
+    border: none;
 }
 
 QTableWidget::item {
@@ -187,10 +244,27 @@ QTableWidget::item {
     font-size: 32pt;
     font-weight: 800;
     color: #F4F6FB;
-    border-bottom: 2px solid rgba(240, 246, 252, 0.15);
+    border: none;
+    border-bottom: 2px solid rgba(240, 246, 252, 0.18);
+    outline: none;
 }
-QTableWidget::item:last-child {
-    border-bottom: none;
+
+QTableWidget::item:selected {
+    background-color: rgba(35, 129, 233, 0.2);
+    color: #F4F6FB;
+    outline: none;
+}
+
+QTableWidget::item:focus {
+    outline: none;
+    border: none;
+    border-bottom: 2px solid rgba(240, 246, 252, 0.18);
+}
+
+/* фон под таблицей (без белых квадратиков) */
+QTableWidget::viewport,
+QTableCornerButton::section {
+    background-color: #0D1117;
 }
 
 QHeaderView::section {
@@ -200,6 +274,13 @@ QHeaderView::section {
     font-weight: 800;
     padding: 10px;
     border: none;
+    border-bottom: 2px solid rgba(240, 246, 252, 0.18);
+    outline: none;
+}
+
+QTableCornerButton::section,
+QTableWidget::viewport {
+    background-color: #0D1117;
 }
 
 QWidget[role="card"] {
@@ -207,14 +288,20 @@ QWidget[role="card"] {
     border-radius: 12px;
     border: 1px solid #30363D;
 }
-QWidget[role="card"] QTableWidget { padding: 8px; }
+QWidget[role="card"] QTableWidget { 
+    padding: 8px;
+    outline: none;
+}
 
 QMenu {
     background: #161B22;
     border: 1px solid #30363D;
     color: #F4F6FB;
 }
-QMenu::item:selected { background: #2381E9; }
+QMenu::item:selected { 
+    background: #2381E9;
+    color: white;
+}
 
 QScrollBar:vertical {
     background: transparent;

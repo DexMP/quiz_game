@@ -99,73 +99,94 @@ class MainWindow(QMainWindow):
 
         body.addLayout(left_col, 3)
 
-        # правая колонка — раунд и управление
+        # правая колонка — переработанное меню
         right_col = QVBoxLayout()
-        round_box = QGroupBox("Раунд")
-        rb_layout = QVBoxLayout()
-
-        # имя раунда
-        rname_layout = QHBoxLayout()
-        self.round_name = QLineEdit("Раунд 1")
-        rname_layout.addWidget(QLabel("Название раунда:"))
-        rname_layout.addWidget(self.round_name)
-        rb_layout.addLayout(rname_layout)
-
-        # вопрос
-        q_layout = QHBoxLayout()
+        
+        # Вопрос
+        question_box = QGroupBox("Вопрос")
+        q_layout = QVBoxLayout()
         self.question_text = QLineEdit("")
-        q_layout.addWidget(QLabel("Вопрос:"))
+        self.question_text.setPlaceholderText("Введите текст вопроса...")
         q_layout.addWidget(self.question_text)
-        rb_layout.addLayout(q_layout)
+        question_box.setLayout(q_layout)
+        right_col.addWidget(question_box)
 
-        # длительность
-        time_layout = QHBoxLayout()
+        # Таймер
+        timer_box = QGroupBox("Таймер")
+        timer_layout = QVBoxLayout()
+        
+        # Длительность
+        time_row = QHBoxLayout()
+        time_row.addWidget(QLabel("Мин:"))
         self.spin_minutes = QSpinBox()
         self.spin_minutes.setRange(0, 999)
         self.spin_minutes.setValue(1)
+        self.spin_minutes.setMinimumWidth(80)
+        time_row.addWidget(self.spin_minutes)
+        time_row.addWidget(QLabel("Сек:"))
         self.spin_seconds = QSpinBox()
         self.spin_seconds.setRange(0, 59)
         self.spin_seconds.setValue(0)
-        time_layout.addWidget(QLabel("Мин:"))
-        time_layout.addWidget(self.spin_minutes)
-        time_layout.addWidget(QLabel("Сек:"))
-        time_layout.addWidget(self.spin_seconds)
-        rb_layout.addLayout(time_layout)
-
-        # кнопки таймера
+        self.spin_seconds.setMinimumWidth(80)
+        time_row.addWidget(self.spin_seconds)
+        time_row.addStretch()
+        timer_layout.addLayout(time_row)
+        
+        # Кнопки таймера
         btns = QHBoxLayout()
         self.btn_start = QPushButton("Старт")
         self.btn_pause = QPushButton("Пауза")
         self.btn_reset = QPushButton("Сброс")
+        self.btn_start.setMinimumHeight(40)
+        self.btn_pause.setMinimumHeight(40)
+        self.btn_reset.setMinimumHeight(40)
         btns.addWidget(self.btn_start)
         btns.addWidget(self.btn_pause)
         btns.addWidget(self.btn_reset)
-        rb_layout.addLayout(btns)
+        timer_layout.addLayout(btns)
+        
+        timer_box.setLayout(timer_layout)
+        right_col.addWidget(timer_box)
 
-        # картинка и big screen
-        img_row = QHBoxLayout()
+        # Большой экран
+        screen_box = QGroupBox("Большой экран")
+        screen_layout = QVBoxLayout()
+        
         self.btn_pick_image = QPushButton("Выбрать картинку")
+        self.btn_pick_image.setMinimumHeight(40)
+        screen_layout.addWidget(self.btn_pick_image)
+        
         self.btn_show_big = QPushButton("Показать большой экран")
-        img_row.addWidget(self.btn_pick_image)
-        img_row.addWidget(self.btn_show_big)
-        rb_layout.addLayout(img_row)
+        self.btn_show_big.setMinimumHeight(40)
+        screen_layout.addWidget(self.btn_show_big)
+        
+        screen_box.setLayout(screen_layout)
+        right_col.addWidget(screen_box)
 
-        round_box.setLayout(rb_layout)
-        right_col.addWidget(round_box)
-
-        # IO + обновление + тема
-        io_box = QHBoxLayout()
+        # Настройки
+        settings_box = QGroupBox("Настройки")
+        settings_layout = QVBoxLayout()
+        
+        io_row1 = QHBoxLayout()
         self.btn_save = QPushButton("Сохранить")
         self.btn_load = QPushButton("Загрузить")
-        self.btn_check_update = QPushButton(
-            f"Проверить обновление (v{APP_VERSION})"
-        )
+        self.btn_save.setMinimumHeight(40)
+        self.btn_load.setMinimumHeight(40)
+        io_row1.addWidget(self.btn_save)
+        io_row1.addWidget(self.btn_load)
+        settings_layout.addLayout(io_row1)
+        
         self.btn_theme = QPushButton("Тёмная тема")
-        io_box.addWidget(self.btn_save)
-        io_box.addWidget(self.btn_load)
-        io_box.addWidget(self.btn_check_update)
-        io_box.addWidget(self.btn_theme)
-        right_col.addLayout(io_box)
+        self.btn_theme.setMinimumHeight(40)
+        settings_layout.addWidget(self.btn_theme)
+        
+        self.btn_check_update = QPushButton(f"Проверить обновление (v{APP_VERSION})")
+        self.btn_check_update.setMinimumHeight(40)
+        settings_layout.addWidget(self.btn_check_update)
+        
+        settings_box.setLayout(settings_layout)
+        right_col.addWidget(settings_box)
+        
         right_col.addStretch()
         body.addLayout(right_col, 2)
 
@@ -189,7 +210,6 @@ class MainWindow(QMainWindow):
         self.btn_check_update.clicked.connect(self.check_update)
         self.btn_theme.clicked.connect(self.toggle_theme)
 
-        self.round_name.textChanged.connect(self.big.set_round_title)
         self.question_text.textChanged.connect(self.set_question_text)
 
         # периодический рефреш
@@ -259,7 +279,6 @@ class MainWindow(QMainWindow):
         self.big.update_scores(self.tm.get_sorted())
         if self.current_image:
             self.big.set_round_image(self.current_image)
-        self.big.set_round_title(self.round_name.text())
 
     # -------- big screen / изображение --------
 
@@ -336,7 +355,7 @@ class MainWindow(QMainWindow):
             self.lg,
             self.th,
             self.timer,
-            self.round_name.text(),
+            "",  # больше не сохраняем название раунда
         )
         try:
             self.sm.save(APP_STATE, state)
@@ -348,10 +367,6 @@ class MainWindow(QMainWindow):
         data = self.sm.load(path)
         self.tm.load_from(data.get("teams", []))
         self.lg.load_from(data.get("history", []))
-
-        rn = data.get("round_name")
-        if rn:
-            self.round_name.setText(rn)
 
         remaining = data.get("remaining")
         if isinstance(remaining, int) and remaining >= 0:
