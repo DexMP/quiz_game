@@ -33,7 +33,12 @@ jobs:
 
       - name: Build EXE with PyInstaller
         run: |
-          pyinstaller -F -w main.py -n quiz_game
+          pyinstaller ^
+            -F ^
+            -w ^
+            -n quiz_game ^
+            --add-data "pic;pic" ^
+            main.py
 
       - name: Upload EXE to release
         uses: softprops/action-gh-release@v2
