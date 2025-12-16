@@ -14,6 +14,7 @@ from PySide6.QtGui import QPixmap, QFont
 
 from ui.snow_overlay import SnowOverlay
 from ui.background_widget import BackgroundWidget
+from ui.card_delegate import CardDelegate
 from utils.paths import resource_path
 
 
@@ -25,21 +26,19 @@ class BigScreenWindow(QMainWindow):
 
         self.current_image = None
 
-        # наш контейнер с фоном
+        # контейнер с фоном и увеличенными отступами
         self.central = BackgroundWidget()
         self.setCentralWidget(self.central)
 
-        self.image_label = QLabel()
-        self.image_label.setAlignment(Qt.AlignCenter)
-        self.image_label.setVisible(False)
-        
-
+        # таблица команд
         self.table = QTableWidget(0, 3)
         self.table.setHorizontalHeaderLabels(["", "Команда", "Очки"])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setVisible(False)
         self.table.verticalHeader().setVisible(False)
+
         self.table.setShowGrid(False)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
 
@@ -57,13 +56,22 @@ class BigScreenWindow(QMainWindow):
         self.table.setFont(table_font)
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
+        # делегат-карточки
+        self.card_delegate = CardDelegate(self.table)
+        self.table.setItemDelegate(self.card_delegate)
+
         self.central.layout.addWidget(self.table)
+
+        # скрытые элементы (для совместимости интерфейса)
+        self.image_label = QLabel()
+        self.image_label.setVisible(False)
 
         self.question_label = QLabel("")
         self.question_label.setVisible(False)
         self.timer_label = QLabel("--:--")
         self.timer_label.setVisible(False)
 
+        # снежный оверлей
         self.snow = SnowOverlay(self)
         self.snow.setGeometry(self.rect())
         self.snow.raise_()
@@ -71,7 +79,7 @@ class BigScreenWindow(QMainWindow):
         # фон по умолчанию
         self.set_background("pic/background_xmas.jpg")
 
-    # просто прокидываем в BackgroundWidget
+    # прокидываем фон в BackgroundWidget
     def set_background(self, path: str | None):
         if not path:
             self.central.set_background(None)
@@ -86,13 +94,12 @@ class BigScreenWindow(QMainWindow):
 
         self.central.set_background(abs_path)
 
-
     @Slot(list)
     def update_scores(self, teams):
         self.table.setRowCount(len(teams))
         game_started = any(t["score"] > 0 for t in teams)
 
-        medals = {0: "👑", 1: "🥈", 2: "🥉", 3: "🎖️", 4: "🐥" , 5: "🤡"}
+        medals = {0: "👑", 1: "🥈", 2: "🥉", 3: "🎖️", 4: "🐥", 5: "🤡"}
 
         item_font = QFont()
         item_font.setPointSize(56)

@@ -9,8 +9,9 @@ class BackgroundWidget(QWidget):
         super().__init__(parent)
         self._bg_pixmap = None
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(40, 40, 40, 40)
-        self.layout.setSpacing(0)
+        self.layout.setContentsMargins(80, 80, 80, 80)
+        self.layout.setSpacing(16)
+
 
     def set_background(self, path: str | None):
         if not path:
