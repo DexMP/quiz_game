@@ -4,12 +4,10 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout
 from PySide6.QtGui import QPainter, QPixmap
 from PySide6.QtCore import Qt
 
-
 class BackgroundWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._bg_pixmap = None
-
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(40, 40, 40, 40)
         self.layout.setSpacing(0)
@@ -20,17 +18,11 @@ class BackgroundWidget(QWidget):
             self.update()
             return
 
-        abs_path = os.path.abspath(path)
-        if not os.path.exists(abs_path):
-            print("BACKGROUND NOT FOUND:", abs_path)
+        pix = QPixmap(path)
+        if pix.isNull():
             self._bg_pixmap = None
         else:
-            pix = QPixmap(abs_path)
-            if pix.isNull():
-                print("BACKGROUND LOAD FAILED:", abs_path)
-                self._bg_pixmap = None
-            else:
-                self._bg_pixmap = pix
+            self._bg_pixmap = pix
         self.update()
 
     def paintEvent(self, event):
@@ -42,7 +34,7 @@ class BackgroundWidget(QWidget):
         rect = self.rect()
         scaled = self._bg_pixmap.scaled(
             rect.size(),
-            Qt.KeepAspectRatioByExpanding,  # эффект cover
+            Qt.KeepAspectRatioByExpanding,
             Qt.SmoothTransformation,
         )
         x = (rect.width() - scaled.width()) // 2

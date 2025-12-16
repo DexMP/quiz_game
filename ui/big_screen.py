@@ -14,6 +14,7 @@ from PySide6.QtGui import QPixmap, QFont
 
 from ui.snow_overlay import SnowOverlay
 from ui.background_widget import BackgroundWidget
+from utils.paths import resource_path
 
 
 class BigScreenWindow(QMainWindow):
@@ -25,14 +26,13 @@ class BigScreenWindow(QMainWindow):
         self.current_image = None
 
         # наш контейнер с фоном
-        central = BackgroundWidget()
-        self.setCentralWidget(central)
+        self.central = BackgroundWidget()
+        self.setCentralWidget(self.central)
 
-        # дальше внутри него всё как раньше
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignCenter)
         self.image_label.setVisible(False)
-        central.layout.addWidget(self.image_label)
+        
 
         self.table = QTableWidget(0, 3)
         self.table.setHorizontalHeaderLabels(["", "Команда", "Очки"])
@@ -57,7 +57,7 @@ class BigScreenWindow(QMainWindow):
         self.table.setFont(table_font)
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
-        central.layout.addWidget(self.table)
+        self.central.layout.addWidget(self.table)
 
         self.question_label = QLabel("")
         self.question_label.setVisible(False)
@@ -73,16 +73,26 @@ class BigScreenWindow(QMainWindow):
 
     # просто прокидываем в BackgroundWidget
     def set_background(self, path: str | None):
-        widget = self.centralWidget()
-        if isinstance(widget, BackgroundWidget):
-            widget.set_background(path)
+        if not path:
+            self.central.set_background(None)
+            return
+
+        abs_path = resource_path(path)
+        print("BG PATH:", abs_path, "exists:", os.path.exists(abs_path))
+
+        if not os.path.exists(abs_path):
+            self.central.set_background(None)
+            return
+
+        self.central.set_background(abs_path)
+
 
     @Slot(list)
     def update_scores(self, teams):
         self.table.setRowCount(len(teams))
         game_started = any(t["score"] > 0 for t in teams)
 
-        medals = {0: "👑", 1: "🥈", 2: "🥉", 5: "🤡"}
+        medals = {0: "👑", 1: "🥈", 2: "🥉", 3: "🎖️", 4: "🐥" , 5: "🤡"}
 
         item_font = QFont()
         item_font.setPointSize(56)
