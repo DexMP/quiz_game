@@ -66,6 +66,9 @@ class MainWindow(QMainWindow):
         top_row = QHBoxLayout()
         self.btn_add = QPushButton("Добавить команду")
         self.btn_remove = QPushButton("Удалить")
+        for b in (self.btn_add, self.btn_remove):
+            b.setMinimumHeight(32)
+            b.setMinimumWidth(150)
         top_row.addWidget(self.btn_add)
         top_row.addWidget(self.btn_remove)
         top_row.addStretch()
@@ -97,94 +100,50 @@ class MainWindow(QMainWindow):
 
         body.addLayout(left_col, 3)
 
-        # правая колонка — переработанное меню
+        # правая колонка — только большой экран и настройки
         right_col = QVBoxLayout()
-        
-        # Вопрос
-        question_box = QGroupBox("Вопрос")
-        q_layout = QVBoxLayout()
-        self.question_text = QLineEdit("")
-        self.question_text.setPlaceholderText("Введите текст вопроса...")
-        q_layout.addWidget(self.question_text)
-        question_box.setLayout(q_layout)
-        right_col.addWidget(question_box)
-
-        # Таймер
-        timer_box = QGroupBox("Таймер")
-        timer_layout = QVBoxLayout()
-        
-        # Длительность
-        time_row = QHBoxLayout()
-        time_row.addWidget(QLabel("Мин:"))
-        self.spin_minutes = QSpinBox()
-        self.spin_minutes.setRange(0, 999)
-        self.spin_minutes.setValue(1)
-        self.spin_minutes.setMinimumWidth(80)
-        time_row.addWidget(self.spin_minutes)
-        time_row.addWidget(QLabel("Сек:"))
-        self.spin_seconds = QSpinBox()
-        self.spin_seconds.setRange(0, 59)
-        self.spin_seconds.setValue(0)
-        self.spin_seconds.setMinimumWidth(80)
-        time_row.addWidget(self.spin_seconds)
-        time_row.addStretch()
-        timer_layout.addLayout(time_row)
-        
-        # Кнопки таймера
-        btns = QHBoxLayout()
-        self.btn_start = QPushButton("Старт")
-        self.btn_pause = QPushButton("Пауза")
-        self.btn_reset = QPushButton("Сброс")
-        self.btn_start.setMinimumHeight(40)
-        self.btn_pause.setMinimumHeight(40)
-        self.btn_reset.setMinimumHeight(40)
-        btns.addWidget(self.btn_start)
-        btns.addWidget(self.btn_pause)
-        btns.addWidget(self.btn_reset)
-        timer_layout.addLayout(btns)
-        
-        timer_box.setLayout(timer_layout)
-        right_col.addWidget(timer_box)
+        right_col.setSpacing(10)
 
         # Большой экран
         screen_box = QGroupBox("Большой экран")
         screen_layout = QVBoxLayout()
-        
-        self.btn_pick_image = QPushButton("Выбрать картинку")
-        self.btn_pick_image.setMinimumHeight(40)
-        screen_layout.addWidget(self.btn_pick_image)
-        
         self.btn_show_big = QPushButton("Показать большой экран")
-        self.btn_show_big.setMinimumHeight(40)
+        self.btn_show_big.setMinimumHeight(44)
+        self.btn_show_big.setMinimumWidth(280)
         screen_layout.addWidget(self.btn_show_big)
-        
         screen_box.setLayout(screen_layout)
         right_col.addWidget(screen_box)
 
         # Настройки
         settings_box = QGroupBox("Настройки")
         settings_layout = QVBoxLayout()
-        
+        settings_layout.setSpacing(8)
+
         io_row1 = QHBoxLayout()
+        io_row1.setSpacing(8)
         self.btn_save = QPushButton("Сохранить")
         self.btn_load = QPushButton("Загрузить")
-        self.btn_save.setMinimumHeight(40)
-        self.btn_load.setMinimumHeight(40)
+        for b in (self.btn_save, self.btn_load):
+            b.setMinimumHeight(40)
+            b.setMinimumWidth(120)
         io_row1.addWidget(self.btn_save)
         io_row1.addWidget(self.btn_load)
         settings_layout.addLayout(io_row1)
-        
+
         self.btn_theme = QPushButton("Тёмная тема")
         self.btn_theme.setMinimumHeight(40)
+        self.btn_theme.setMinimumWidth(220)
         settings_layout.addWidget(self.btn_theme)
-        
-        self.btn_check_update = QPushButton(f"Проверить обновление (v{APP_VERSION})")
-        self.btn_check_update.setMinimumHeight(40)
+
+        # короткий текст, чтобы точно влезал
+        self.btn_check_update = QPushButton(f"Проверить обновление\n(v{APP_VERSION})")
+        self.btn_check_update.setMinimumHeight(46)
+        self.btn_check_update.setMinimumWidth(260)
         settings_layout.addWidget(self.btn_check_update)
-        
+
         settings_box.setLayout(settings_layout)
         right_col.addWidget(settings_box)
-        
+
         right_col.addStretch()
         body.addLayout(right_col, 2)
 
@@ -192,23 +151,16 @@ class MainWindow(QMainWindow):
         self.big = BigScreenWindow()
 
         # состояние
-        self.current_image = None
         self.big_screen_index = None
 
         # сигналы
         self.btn_add.clicked.connect(self.add_team)
         self.btn_remove.clicked.connect(self.remove_selected)
-        self.btn_start.clicked.connect(self.start_timer)
-        self.btn_pause.clicked.connect(self.pause_timer)
-        self.btn_reset.clicked.connect(self.reset_timer)
-        self.btn_pick_image.clicked.connect(self.pick_image)
         self.btn_show_big.clicked.connect(self.show_big)
         self.btn_save.clicked.connect(self.save_state)
         self.btn_load.clicked.connect(self.load_state_dialog)
         self.btn_check_update.clicked.connect(self.check_update)
         self.btn_theme.clicked.connect(self.toggle_theme)
-
-        self.question_text.textChanged.connect(self.set_question_text)
 
         # периодический рефреш
         self.ui_timer = QTimer(self)
@@ -234,29 +186,27 @@ class MainWindow(QMainWindow):
         self.refresh()
 
     def remove_selected(self):
-        rows = sorted(
-            {i.row() for i in self.table.selectedIndexes()}, reverse=True
-        )
+        rows = sorted({i.row() for i in self.table.selectedIndexes()}, reverse=True)
         if not rows:
             QMessageBox.information(
                 self, "Удаление", "Выберите хотя бы одну команду."
             )
             return
-        
+
         # Получаем имена команд из выбранных строк (учитываем сортировку)
         sorted_teams = self.tm.get_sorted()
         teams_to_remove = []
         for r in rows:
             if r < len(sorted_teams):
                 teams_to_remove.append(sorted_teams[r]["name"])
-        
+
         # Удаляем команды по именам
         for name in teams_to_remove:
             for idx, team in enumerate(self.tm.teams):
                 if team["name"] == name:
                     self.tm.remove_by_index(idx)
                     break
-        
+
         self.lg.log("Удалены команды")
         self.refresh()
 
@@ -264,23 +214,23 @@ class MainWindow(QMainWindow):
         row = self.table.indexAt(pos).row()
         if row < 0:
             return
-        
+
         # Получаем имя команды из отсортированного списка
         sorted_teams = self.tm.get_sorted()
         if row >= len(sorted_teams):
             return
         team_name = sorted_teams[row]["name"]
-        
+
         # Находим индекс в оригинальном списке
         original_idx = None
         for idx, team in enumerate(self.tm.teams):
             if team["name"] == team_name:
                 original_idx = idx
                 break
-        
+
         if original_idx is None:
             return
-        
+
         m = QMenu(self)
         for txt, val in [("+1", 1), ("+5", 5), ("-1", -1), ("-5", -5)]:
             act = QAction(txt, self)
@@ -291,45 +241,27 @@ class MainWindow(QMainWindow):
         m.exec(self.table.viewport().mapToGlobal(pos))
         self.refresh()
 
-    def set_question_text(self, text: str):
-        self.big.set_question(text)
-
     def refresh(self):
         # Используем отсортированный список команд
         sorted_teams = self.tm.get_sorted()
         self.table.setRowCount(len(sorted_teams))
-        
+
         for i, t in enumerate(sorted_teams):
             # Название команды
             name_item = QTableWidgetItem(t["name"])
             self.table.setItem(i, 0, name_item)
-            
+
             # Очки
             score_item = QTableWidgetItem(str(t["score"]))
             score_item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(i, 1, score_item)
-            
+
             self.table.setRowHeight(i, 54)
-        
+
         self.hist.setPlainText(self.lg.get_text())
         self.big.update_scores(sorted_teams)
-        if self.current_image:
-            self.big.set_round_image(self.current_image)
 
-    # -------- big screen / изображение --------
-
-    def pick_image(self):
-        p, _ = QFileDialog.getOpenFileName(
-            self,
-            "Выберите изображение",
-            "",
-            "Images (*.png *.jpg *.jpeg *.bmp)",
-        )
-        if not p:
-            return
-        self.current_image = p
-        self.lg.log(f"Выбрано изображение: {os.path.basename(p)}")
-        self.big.set_round_image(p)
+    # -------- big screen --------
 
     def show_big(self):
         if self.big_screen_index is None:
@@ -345,44 +277,6 @@ class MainWindow(QMainWindow):
         self.big.setGeometry(scr)
         self.big.showFullScreen()
 
-    # -------- таймер --------
-
-    def start_timer(self):
-        sec = self.spin_minutes.value() * 60 + self.spin_seconds.value()
-        if sec <= 0:
-            QMessageBox.warning(
-                self, "Таймер", "Установите длительность > 0."
-            )
-            return
-        self.timer.start(sec, callback=self._on_tick, finished=self._on_finish)
-        self.lg.log("Таймер старт")
-
-    def pause_timer(self):
-        self.timer.toggle_pause()
-        if self.timer.running:
-            self.btn_pause.setText("Пауза")
-            self.lg.log("Таймер продолжен")
-        else:
-            self.btn_pause.setText("Продолжить")
-            self.lg.log("Таймер на паузе")
-
-    def reset_timer(self):
-        self.timer.reset()
-        self.lg.log("Таймер сброшен")
-        self.btn_pause.setText("Пауза")
-        self._on_tick()
-
-    def _on_tick(self):
-        txt = self._timer_text() if self.timer.running else "--:--"
-        self.big.update_timer(txt)
-
-    def _on_finish(self):
-        self.lg.log("Таймер завершён")
-        self._on_tick()
-
-    def _timer_text(self):
-        return self.timer.format_time(self.timer.remaining)
-
     # -------- состояние --------
 
     def save_state(self):
@@ -390,8 +284,8 @@ class MainWindow(QMainWindow):
             self.tm,
             self.lg,
             self.th,
-            self.timer,
-            "",  # больше не сохраняем название раунда
+            self.timer,  # таймер оставляем в состоянии, вдруг потом вернёшь
+            "",
         )
         try:
             self.sm.save(APP_STATE, state)
@@ -404,12 +298,10 @@ class MainWindow(QMainWindow):
         self.tm.load_from(data.get("teams", []))
         self.lg.load_from(data.get("history", []))
 
+        # таймер восстановим только в модели, UI‑элементов уже нет
         remaining = data.get("remaining")
         if isinstance(remaining, int) and remaining >= 0:
             self.timer.remaining = remaining
-            mins, secs = divmod(remaining, 60)
-            self.spin_minutes.setValue(mins)
-            self.spin_seconds.setValue(secs)
 
         theme = data.get("theme")
         if theme:
