@@ -1,6 +1,8 @@
 # ui/big_screen.py
 import os
 
+from PySide6.QtCore import Qt, Slot
+from PySide6.QtGui import QPixmap, QFontDatabase, QFont
 from PySide6.QtWidgets import (
     QMainWindow,
     QLabel,
@@ -9,8 +11,6 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QSizePolicy,
 )
-from PySide6.QtCore import Qt, Slot
-from PySide6.QtGui import QPixmap, QFont
 
 from ui.snow_overlay import SnowOverlay
 from ui.background_widget import BackgroundWidget
@@ -25,12 +25,38 @@ class BigScreenWindow(QMainWindow):
         self.setMinimumSize(800, 600)
 
         self.current_image = None
+        self._last_scores = {}
+        self._changed_row = None
 
-        # контейнер с фоном и увеличенными отступами
+        # ----- шрифт Montserrat -----
+        fonts_dir = os.path.join(os.path.dirname(__file__), "..", "assets", "fonts")
+        regular_path = os.path.abspath(os.path.join(fonts_dir, "Montserrat-Regular.ttf"))
+        bold_path = os.path.abspath(os.path.join(fonts_dir, "Montserrat-Bold.ttf"))
+
+        for path in (regular_path, bold_path):
+            if os.path.exists(path):
+                QFontDatabase.addApplicationFont(path)
+
+        families = (
+            QFontDatabase.applicationFontFamilies(
+                QFontDatabase.addApplicationFont(bold_path)
+            )
+            if os.path.exists(bold_path)
+            else []
+        )
+        if families:
+            montserrat = families[0]
+        else:
+            montserrat = "Montserrat"
+
+        self.row_font = QFont(montserrat, 28, QFont.Medium)   # название команды
+        self.score_font = QFont(montserrat, 34, QFont.Bold)   # очки, крупнее
+
+        # ----- контейнер с фоном -----
         self.central = BackgroundWidget()
         self.setCentralWidget(self.central)
 
-        # таблица команд
+        # ----- таблица команд -----
         self.table = QTableWidget(0, 3)
         self.table.setHorizontalHeaderLabels(["", "Команда", "Очки"])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
@@ -41,19 +67,15 @@ class BigScreenWindow(QMainWindow):
 
         self.table.setShowGrid(False)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
-
         self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.table.setVerticalScrollMode(QTableWidget.ScrollPerPixel)
         self.table.setHorizontalScrollMode(QTableWidget.ScrollPerPixel)
-
         self.table.setSelectionMode(QTableWidget.NoSelection)
         self.table.setFocusPolicy(Qt.NoFocus)
 
-        table_font = QFont()
-        table_font.setPointSize(48)
-        table_font.setBold(True)
-        self.table.setFont(table_font)
+        # базовый шрифт таблицы (Montserrat)
+        self.table.setFont(self.row_font)
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         # делегат-карточки
@@ -101,10 +123,9 @@ class BigScreenWindow(QMainWindow):
 
         medals = {0: "👑", 1: "🥈", 2: "🥉", 3: "🎖️", 4: "🐥", 5: "🤡"}
 
-        item_font = QFont()
-        item_font.setPointSize(56)
-        item_font.setBold(True)
-        item_font.setWeight(QFont.ExtraBold)
+        num_font = QFont(self.row_font)
+        num_font.setPointSize(32)
+        num_font.setBold(True)
 
         available_height = self.table.viewport().height()
         header_height = self.table.horizontalHeader().height()
@@ -112,25 +133,40 @@ class BigScreenWindow(QMainWindow):
         row_height = max(100, (available_height - header_height) // row_count)
 
         for i, t in enumerate(teams):
+            # номер
             num_item = QTableWidgetItem(str(i + 1))
             num_item.setTextAlignment(Qt.AlignCenter)
-            num_item.setFont(item_font)
+            num_item.setFont(num_font)
 
+            # название команды с медалью
             team_name = t["name"]
             if game_started and i in medals:
                 team_name = f"{medals[i]} {team_name}"
 
             name_item = QTableWidgetItem(team_name)
-            name_item.setFont(item_font)
+            name_item.setFont(self.row_font)
 
+            # очки крупнее
             score_item = QTableWidgetItem(str(t["score"]))
             score_item.setTextAlignment(Qt.AlignCenter)
-            score_item.setFont(item_font)
+            score_item.setFont(self.score_font)
 
             self.table.setItem(i, 0, num_item)
             self.table.setItem(i, 1, name_item)
             self.table.setItem(i, 2, score_item)
             self.table.setRowHeight(i, row_height)
+
+        # определить, какая строка изменилась
+        old_scores = self._last_scores
+        self._last_scores = {t["name"]: t["score"] for t in teams}
+        changed_row = None
+        for i, t in enumerate(teams):
+            if old_scores.get(t["name"]) is not None and old_scores.get(t["name"]) != t["score"]:
+                changed_row = i
+
+        self._changed_row = changed_row
+        self.card_delegate.set_leader_row(0 if teams else None)
+        self.card_delegate.set_changed_row(changed_row)
 
     @Slot(str)
     def update_timer(self, text):
@@ -165,7 +201,9 @@ class BigScreenWindow(QMainWindow):
         if self.table.rowCount() > 0:
             available_height = self.table.viewport().height()
             header_height = self.table.horizontalHeader().height()
-            row_height = max(100, (available_height - header_height) // self.table.rowCount())
+            row_height = max(
+                100, (available_height - header_height) // self.table.rowCount()
+            )
             for i in range(self.table.rowCount()):
                 self.table.setRowHeight(i, row_height)
 

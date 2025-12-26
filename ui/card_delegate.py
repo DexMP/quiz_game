@@ -1,54 +1,72 @@
-# ui/card_delegate.py
 from PySide6.QtWidgets import QStyledItemDelegate
 from PySide6.QtGui import QPainter, QColor, QBrush, QPen
 from PySide6.QtCore import Qt, QRect, QModelIndex, QSize
-
 
 class CardDelegate(QStyledItemDelegate):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.radius = 20
-        self.bg_color = QColor(255, 255, 255, 210)
-        self.border_color = QColor(0, 0, 0, 25)
+        self.base_bg = QColor(255, 255, 255, 220)
+        self.base_border = QColor(0, 0, 0, 25)
+
+        self.leader_row = None
+        self.changed_row = None
+
+    def set_leader_row(self, row: int | None):
+        self.leader_row = row
+        if self.parent():
+            self.parent().viewport().update()
+
+    def set_changed_row(self, row: int | None):
+        self.changed_row = row
+        if self.parent():
+            self.parent().viewport().update()
 
     def paint(self, painter: QPainter, option, index: QModelIndex):
         rect: QRect = option.rect
         row = index.row()
         column = index.column()
-        view = option.widget  # QTableView/QTableWidget
+        view = option.widget
 
-        # считаем общую область строки по всем колонкам
+        bg_color = QColor(self.base_bg)
+        border_color = QColor(self.base_border)
+
+        # лидер — тёплый фон
+        if self.leader_row is not None and row == self.leader_row:
+            bg_color = QColor(252, 249, 228, 230)
+
+        # изменённая строка — мягкий голубой фон (без мигания)
+        if self.changed_row is not None and row == self.changed_row:
+            bg_color = QColor(230, 238, 255, 235)
+
         if column == 0:
-            # первая колонка: рисуем карточку на всю строку
             row_rect = QRect(rect)
-            for c in range(1, view.model().columnCount()):
-                row_rect = row_rect.united(view.visualRect(view.model().index(row, c)))
+            model = view.model()
+            for c in range(1, model.columnCount()):
+                row_rect = row_rect.united(view.visualRect(model.index(row, c)))
 
             card_rect = QRect(
                 row_rect.left() + 8,
-                row_rect.top() + 4,
+                row_rect.top() + 6,
                 row_rect.width() - 16,
-                row_rect.height() - 8,
+                row_rect.height() - 12,
             )
 
             painter.save()
             painter.setRenderHint(QPainter.Antialiasing, True)
 
-            shadow_rect = card_rect.translated(0, 2)
-            painter.setBrush(QColor(0, 0, 0, 40))
+            shadow_rect = card_rect.translated(0, 3)
+            painter.setBrush(QColor(0, 0, 0, 35))
             painter.setPen(Qt.NoPen)
             painter.drawRoundedRect(shadow_rect, self.radius, self.radius)
 
-            painter.setBrush(QBrush(self.bg_color))
-            painter.setPen(QPen(self.border_color, 1))
+            painter.setBrush(QBrush(bg_color))
+            painter.setPen(QPen(border_color, 1))
             painter.drawRoundedRect(card_rect, self.radius, self.radius)
 
             painter.restore()
 
-        # смещаем текст внутри карточки
         option2 = option
-
-        # слева чуть меньше отступ, чтобы номер влезал
         if column == 0:
             option2.rect = option.rect.adjusted(18, 0, -8, 0)
         else:
