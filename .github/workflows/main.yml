@@ -32,7 +32,7 @@ jobs:
           (Get-Content core/version.py) -replace "__APP_VERSION__", $tag | Set-Content core/version.py
 
       - name: Build EXE with PyInstaller
-        run: pyinstaller -F -w -n quiz_game --add-data "pic;pic" --add-data "assets;assets" main.py
+        run: pyinstaller -F -w -n quiz_game --hidden-import=requests --add-data "pic;pic" --add-data "assets;assets" main.py
 
       - name: Upload EXE to release
         uses: softprops/action-gh-release@v2
