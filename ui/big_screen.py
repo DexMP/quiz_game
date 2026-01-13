@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
 )
 
-from ui.snow_overlay import SnowOverlay
+from ui.confetti_overlay import ConfettiOverlay  # ИЗМЕНЕНО: было SnowOverlay
 from ui.background_widget import BackgroundWidget
 from ui.card_delegate import CardDelegate
 from utils.paths import resource_path
@@ -61,7 +61,8 @@ class BigScreenWindow(QMainWindow):
         self.table.setHorizontalHeaderLabels(["", "Команда", "Очки"])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)  # ИЗМЕНЕНО: было ResizeToContents
+        self.table.horizontalHeader().resizeSection(2, 180)  # ДОБАВЛЕНО: минимальная ширина для очков
         self.table.horizontalHeader().setVisible(False)
         self.table.verticalHeader().setVisible(False)
 
@@ -93,13 +94,13 @@ class BigScreenWindow(QMainWindow):
         self.timer_label = QLabel("--:--")
         self.timer_label.setVisible(False)
 
-        # снежный оверлей
-        self.snow = SnowOverlay(self)
-        self.snow.setGeometry(self.rect())
-        self.snow.raise_()
+        # конфетти оверлей (ИЗМЕНЕНО: было SnowOverlay)
+        self.confetti = ConfettiOverlay(self)
+        self.confetti.setGeometry(self.rect())
+        self.confetti.raise_()
 
         # фон по умолчанию
-        self.set_background("pic/background_xmas.jpg")
+        self.set_background("pic/background_bthday2.jpg")
 
     # прокидываем фон в BackgroundWidget
     def set_background(self, path: str | None):
@@ -115,6 +116,23 @@ class BigScreenWindow(QMainWindow):
             return
 
         self.central.set_background(abs_path)
+
+    def _get_adaptive_score_font(self, score: int) -> QFont:
+        """Адаптивный размер шрифта в зависимости от количества цифр"""
+        font = QFont(self.score_font)
+        score_str = str(score)
+        digit_count = len(score_str)
+        
+        if digit_count <= 2:
+            font.setPointSize(34)  # 0-99
+        elif digit_count == 3:
+            font.setPointSize(30)  # 100-999
+        elif digit_count == 4:
+            font.setPointSize(26)  # 1000-9999
+        else:
+            font.setPointSize(22)  # 10000+
+        
+        return font
 
     @Slot(list)
     def update_scores(self, teams):
@@ -146,10 +164,11 @@ class BigScreenWindow(QMainWindow):
             name_item = QTableWidgetItem(team_name)
             name_item.setFont(self.row_font)
 
-            # очки крупнее
-            score_item = QTableWidgetItem(str(t["score"]))
+            # очки с адаптивным размером шрифта (ИЗМЕНЕНО)
+            score_value = t["score"]
+            score_item = QTableWidgetItem(str(score_value))
             score_item.setTextAlignment(Qt.AlignCenter)
-            score_item.setFont(self.score_font)
+            score_item.setFont(self._get_adaptive_score_font(score_value))  # адаптивный шрифт
 
             self.table.setItem(i, 0, num_item)
             self.table.setItem(i, 1, name_item)
@@ -194,7 +213,7 @@ class BigScreenWindow(QMainWindow):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        self.snow.setGeometry(self.rect())
+        self.confetti.setGeometry(self.rect())  # ИЗМЕНЕНО: было self.snow
         if self.current_image:
             self.set_round_image(self.current_image)
 
