@@ -1,7 +1,7 @@
 # core/team_manager.py
 """Менеджер команд"""
 
-from typing import List, Dict, Optional
+from typing import List, Dict, Union
 from core.team import Team
 
 
@@ -51,7 +51,7 @@ class TeamManager:
         """
         return sorted(self.teams, key=lambda x: -x.score)
     
-    def load_from(self, teams: List[Dict] | List[Team]) -> None:
+    def load_from(self, teams: Union[List[Dict], List[Team]]) -> None:
         """Загрузить команды из списка словарей или Team объектов
         
         Args:
