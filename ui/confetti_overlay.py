@@ -94,7 +94,7 @@ class Confetti:
 class ConfettiOverlay(QWidget):
     """Оверлей с падающими конфетти для праздничного эффекта"""
     
-    def __init__(self, parent=None, count=50):
+    def __init__(self, parent=None, count=30):
         super().__init__(parent)
         self.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
@@ -106,7 +106,7 @@ class ConfettiOverlay(QWidget):
         
         # таймер для анимации
         self.timer = QTimer(self)
-        self.timer.setInterval(30)  # ~33 FPS
+        self.timer.setInterval(50)  # ~33 FPS
         self.timer.timeout.connect(self._tick)
         self.timer.start()
         

@@ -207,7 +207,7 @@ class MainWindow(QMainWindow):
 
         # периодический рефреш
         self.ui_timer = QTimer(self)
-        self.ui_timer.setInterval(400)
+        self.ui_timer.setInterval(600)
         self.ui_timer.timeout.connect(self.refresh)
         self.ui_timer.start()
 
@@ -259,45 +259,47 @@ class MainWindow(QMainWindow):
                 self, "Удаление", "Выберите хотя бы одну команду."
             )
             return
-
+        
         # Получаем имена команд из выбранных строк (учитываем сортировку)
         sorted_teams = self.tm.get_sorted()
         teams_to_remove = []
         for r in rows:
             if r < len(sorted_teams):
-                teams_to_remove.append(sorted_teams[r]["name"])
-
+                teams_to_remove.append(sorted_teams[r].name)  # ← ИЗМЕНЕНО: было ["name"]
+        
         # Удаляем команды по именам
         for name in teams_to_remove:
             for idx, team in enumerate(self.tm.teams):
-                if team["name"] == name:
+                if team.name == name:  # ← ИЗМЕНЕНО: было ["name"]
                     self.tm.remove_by_index(idx)
                     break
-
+        
         self.lg.log("Удалены команды")
         self.refresh()
 
+    
     def open_menu(self, pos):
         row = self.table.indexAt(pos).row()
         if row < 0:
             return
-
+        
         # Получаем имя команды из отсортированного списка
         sorted_teams = self.tm.get_sorted()
         if row >= len(sorted_teams):
             return
-        team_name = sorted_teams[row]["name"]
-
+        
+        team_name = sorted_teams[row].name  # ← ИЗМЕНЕНО: было ["name"]
+        
         # Находим индекс в оригинальном списке
         original_idx = None
         for idx, team in enumerate(self.tm.teams):
-            if team["name"] == team_name:
+            if team.name == team_name:  # ← ИЗМЕНЕНО: было ["name"]
                 original_idx = idx
                 break
-
+        
         if original_idx is None:
             return
-
+        
         m = QMenu(self)
         for txt, val in [("+1", 1), ("+5", 5), ("-1", -1), ("-5", -5)]:
             act = QAction(txt, self)
@@ -307,6 +309,7 @@ class MainWindow(QMainWindow):
             m.addAction(act)
         m.exec(self.table.viewport().mapToGlobal(pos))
         self.refresh()
+
 
     def refresh(self):
         # Используем отсортированный список команд

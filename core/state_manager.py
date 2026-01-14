@@ -4,11 +4,10 @@ import json, csv
 class StateManager:
     def build_state(self, team_mgr, logger, theme_mgr, timer, round_name):
         return {
-            'teams': team_mgr.teams,
+            'teams': team_mgr.to_dict_list(),  # ← ПРАВИЛЬНО! Конвертируем в список словарей
             'history': logger.history,
             'theme': theme_mgr.get(),
-            'round_name': round_name,
-            'remaining': timer.remaining
+            'remaining': timer.remaining,
         }
 
     def save(self, path, state):
@@ -22,6 +21,6 @@ class StateManager:
     def export_csv(self, path, teams):
         with open(path, 'w', newline='', encoding='utf-8') as f:
             w = csv.writer(f)
-            w.writerow(['team', 'score'])
+            w.writerow(['name', 'score'])          # ← ИСПРАВЛЕНО
             for t in teams:
-                w.writerow([t['name'], t['score']])
+                w.writerow([t.name, t.score])       # ← ИСПРАВЛЕНО

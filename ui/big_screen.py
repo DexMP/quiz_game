@@ -102,8 +102,14 @@ class BigScreenWindow(QMainWindow):
         self.confetti.setGeometry(self.rect())
         self.confetti.raise_()
 
+        from ui.flash_effect import FlashEffect
+
+        # Создать эффект вспышки
+        self.flash_effect: FlashEffect = FlashEffect(self, duration=300)
+        self.flash_effect.hide()
+
         # фон по умолчанию
-        self.set_background("pic/background_xmas.jpg")
+        self.set_background("pic/background_bthday2.jpg")
 
     def set_background(self, path: Optional[str]) -> None:
         """Установить фоновое изображение
@@ -222,6 +228,12 @@ class BigScreenWindow(QMainWindow):
                 changed_row = i
 
         self._changed_row = changed_row
+        if teams:
+            current_leader = teams[0].name
+            if not hasattr(self, '_prev_leader') or self._prev_leader != current_leader:
+                # Новый лидер! Вспышка!
+                self.flash_effect.flash(QColor(255, 215, 0))  # Золотая вспышка
+                self._prev_leader = current_leader
         self.card_delegate.set_leader_row(0 if teams else None)
         self.card_delegate.set_changed_row(changed_row)
 
