@@ -236,18 +236,18 @@ QTableWidget:focus {
     border: none;
 }
 
-/* big screen получает свои размеры шрифтов, админка задаёт font в коде */
+/* ВАЖНО: сначала базовый стиль */
 QTableWidget::item {
     padding: 14px 10px;
     font-size: 14pt;
     font-weight: 600;
     color: #1D2A40;
     border: none;
-    background-color: rgba(255, 255, 255, 0.0);
 }
 
+/* Потом alternate с !important чтобы перебить кэш */
 QTableWidget::item:alternate {
-    background-color: rgba(58, 122, 254, 0.04);
+    background-color: #E3EDFF;
 }
 
 QTableWidget::item:selected {
@@ -346,7 +346,7 @@ QPushButton:hover {
 
 QLabel#lbl_update_badge {
     background-color: #EF4444;
-    border-radius: 5px; /* половина 10px */
+    border-radius: 5px;
 }
 
 /* первичная синяя (Показать большой экран) */
@@ -368,7 +368,7 @@ QPushButton#btn_remove {
 
 /* Добавить — приглушённый зелёный */
 QPushButton#btn_add {
-    background-color: #15803D;     /* темнее */
+    background-color: #15803D;
     color: #FFFFFF;
 }
 QPushButton#btn_add:hover {
@@ -506,6 +506,7 @@ QTableWidget:focus {
     border: none;
 }
 
+/* ВАЖНО: сначала базовый стиль */
 QTableWidget::item {
     padding: 14px 10px;
     font-size: 14pt;
@@ -515,11 +516,11 @@ QTableWidget::item {
     outline: none;
 }
 
+/* Потом alternate с явным тёмным цветом */
 QTableWidget::item:alternate {
-    background-color: rgba(15, 23, 42, 0.6);
+    background-color: #1A1F2E;
 }
 
-/* лёгкий hover только для админки; big screen таблица без objectName остаётся статичной */
 QTableWidget#adminTable::item:hover {
     background: rgba(60, 120, 255, 0.10);
 }

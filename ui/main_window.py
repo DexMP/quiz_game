@@ -397,10 +397,49 @@ class MainWindow(QMainWindow):
         app = QApplication.instance()
         if mode == "dark":
             app.setStyleSheet(AURORA_DARK)
+            # Установить тёмную палитру для корректной работы делегатов
+            from PySide6.QtGui import QPalette, QColor
+            dark_palette = QPalette()
+            dark_palette.setColor(QPalette.Window, QColor(14, 17, 23))
+            dark_palette.setColor(QPalette.WindowText, QColor(244, 246, 251))
+            dark_palette.setColor(QPalette.Base, QColor(22, 27, 34))
+            dark_palette.setColor(QPalette.AlternateBase, QColor(30, 36, 48))
+            dark_palette.setColor(QPalette.Text, QColor(244, 246, 251))
+            app.setPalette(dark_palette)
             self.chk_dark.setChecked(True)
         else:
             app.setStyleSheet(AURORA_LIGHT_PRO)
+            # Установить светлую палитру
+            from PySide6.QtGui import QPalette, QColor
+            light_palette = QPalette()
+            light_palette.setColor(QPalette.Window, QColor(247, 250, 255))
+            light_palette.setColor(QPalette.WindowText, QColor(47, 59, 77))
+            light_palette.setColor(QPalette.Base, QColor(255, 255, 255))
+            light_palette.setColor(QPalette.AlternateBase, QColor(238, 246, 255))
+            light_palette.setColor(QPalette.Text, QColor(47, 59, 77))
+            app.setPalette(light_palette)
             self.chk_dark.setChecked(False)
+        
+        # Полная очистка и пересоздание таблицы
+        if hasattr(self, 'table'):
+            # Очищаем все ячейки, сбрасывая их фоновые цвета
+            for row in range(self.table.rowCount()):
+                for col in range(self.table.columnCount()):
+                    item = self.table.item(row, col)
+                    if item:
+                        # Сброс фона к default
+                        item.setBackground(QColor(0, 0, 0, 0))  # прозрачный
+            
+            # Принудительно перерисовываем
+            self.table.reset()
+            self.refresh()
+        
+        # Обновить big screen
+        if hasattr(self, 'big'):
+            self.big.update()
+            if hasattr(self.big, 'table'):
+                self.big.table.viewport().update()
+
 
     def toggle_theme(self):
         self.th.toggle_mode()

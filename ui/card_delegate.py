@@ -1,14 +1,11 @@
-from PySide6.QtWidgets import QStyledItemDelegate
-from PySide6.QtGui import QPainter, QColor, QBrush, QPen
+from PySide6.QtWidgets import QStyledItemDelegate, QApplication
+from PySide6.QtGui import QPainter, QColor, QBrush, QPen, QPalette
 from PySide6.QtCore import Qt, QRect, QModelIndex, QSize
 
 class CardDelegate(QStyledItemDelegate):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.radius = 20
-        self.base_bg = QColor(255, 255, 255, 220)
-        self.base_border = QColor(0, 0, 0, 25)
-
         self.leader_row = None
         self.changed_row = None
 
@@ -22,22 +19,44 @@ class CardDelegate(QStyledItemDelegate):
         if self.parent():
             self.parent().viewport().update()
 
+    def _get_theme_colors(self):
+        """Получить цвета в зависимости от темы"""
+        palette = QApplication.palette()
+        is_dark = palette.color(QPalette.Window).lightness() < 128
+        
+        if is_dark:
+            # Тёмная тема
+            base_bg = QColor(45, 45, 48, 220)      # Тёмно-серый фон
+            base_border = QColor(255, 255, 255, 25) # Светлая граница
+            leader_bg = QColor(60, 55, 40, 230)     # Тёплый тёмный фон для лидера
+            changed_bg = QColor(40, 50, 70, 235)    # Голубоватый тёмный фон
+        else:
+            # Светлая тема
+            base_bg = QColor(255, 255, 255, 220)
+            base_border = QColor(0, 0, 0, 25)
+            leader_bg = QColor(252, 249, 228, 230)
+            changed_bg = QColor(230, 238, 255, 235)
+        
+        return base_bg, base_border, leader_bg, changed_bg
+
     def paint(self, painter: QPainter, option, index: QModelIndex):
         rect: QRect = option.rect
         row = index.row()
         column = index.column()
         view = option.widget
 
-        bg_color = QColor(self.base_bg)
-        border_color = QColor(self.base_border)
+        # Получаем цвета в зависимости от темы
+        base_bg, base_border, leader_bg, changed_bg = self._get_theme_colors()
+        bg_color = QColor(base_bg)
+        border_color = QColor(base_border)
 
         # лидер — тёплый фон
         if self.leader_row is not None and row == self.leader_row:
-            bg_color = QColor(252, 249, 228, 230)
+            bg_color = QColor(leader_bg)
 
         # изменённая строка — мягкий голубой фон (без мигания)
         if self.changed_row is not None and row == self.changed_row:
-            bg_color = QColor(230, 238, 255, 235)
+            bg_color = QColor(changed_bg)
 
         if column == 0:
             row_rect = QRect(rect)
