@@ -315,11 +315,11 @@ class MainWindow(QMainWindow):
 
         for i, t in enumerate(sorted_teams):
             # Название команды
-            name_item = QTableWidgetItem(t["name"])
+            name_item = QTableWidgetItem(t.name)
             self.table.setItem(i, 0, name_item)
 
             # Очки
-            score_item = QTableWidgetItem(str(t["score"]))
+            score_item = QTableWidgetItem(str(t.score))
             score_item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(i, 1, score_item)
 
