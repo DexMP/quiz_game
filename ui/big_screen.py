@@ -1,8 +1,12 @@
 # ui/big_screen.py
+"""Большой экран для показа на проекторе/телевизоре"""
+
 import os
+from functools import lru_cache
+from typing import List, Optional
 
 from PySide6.QtCore import Qt, Slot
-from PySide6.QtGui import QPixmap, QFontDatabase, QFont
+from PySide6.QtGui import QPixmap, QFontDatabase, QFont, QColor
 from PySide6.QtWidgets import (
     QMainWindow,
     QLabel,
@@ -12,21 +16,24 @@ from PySide6.QtWidgets import (
     QSizePolicy,
 )
 
-from ui.confetti_overlay import ConfettiOverlay  # ИЗМЕНЕНО: было SnowOverlay
+from core.team import Team
+from ui.confetti_overlay import ConfettiOverlay
 from ui.background_widget import BackgroundWidget
 from ui.card_delegate import CardDelegate
 from utils.paths import resource_path
 
 
 class BigScreenWindow(QMainWindow):
-    def __init__(self):
+    """Окно большого экрана для показа команд на проекторе"""
+    
+    def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("BIG SCREEN")
         self.setMinimumSize(800, 600)
 
-        self.current_image = None
-        self._last_scores = {}
-        self._changed_row = None
+        self.current_image: Optional[str] = None
+        self._last_scores: dict[str, int] = {}
+        self._changed_row: Optional[int] = None
 
         # ----- шрифт Montserrat -----
         fonts_dir = os.path.join(os.path.dirname(__file__), "..", "assets", "fonts")
@@ -44,25 +51,22 @@ class BigScreenWindow(QMainWindow):
             if os.path.exists(bold_path)
             else []
         )
-        if families:
-            montserrat = families[0]
-        else:
-            montserrat = "Montserrat"
+        montserrat = families[0] if families else "Montserrat"
 
-        self.row_font = QFont(montserrat, 28, QFont.Medium)   # название команды
-        self.score_font = QFont(montserrat, 34, QFont.Bold)   # очки, крупнее
+        self.row_font: QFont = QFont(montserrat, 28, QFont.Medium)
+        self.score_font: QFont = QFont(montserrat, 34, QFont.Bold)
 
         # ----- контейнер с фоном -----
         self.central = BackgroundWidget()
         self.setCentralWidget(self.central)
 
         # ----- таблица команд -----
-        self.table = QTableWidget(0, 3)
+        self.table: QTableWidget = QTableWidget(0, 3)
         self.table.setHorizontalHeaderLabels(["", "Команда", "Очки"])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)  # ИЗМЕНЕНО: было ResizeToContents
-        self.table.horizontalHeader().resizeSection(2, 180)  # ДОБАВЛЕНО: минимальная ширина для очков
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
+        self.table.horizontalHeader().resizeSection(2, 180)
         self.table.horizontalHeader().setVisible(False)
         self.table.verticalHeader().setVisible(False)
 
@@ -75,35 +79,38 @@ class BigScreenWindow(QMainWindow):
         self.table.setSelectionMode(QTableWidget.NoSelection)
         self.table.setFocusPolicy(Qt.NoFocus)
 
-        # базовый шрифт таблицы (Montserrat)
         self.table.setFont(self.row_font)
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
-        # делегат-карточки
-        self.card_delegate = CardDelegate(self.table)
+        self.card_delegate: CardDelegate = CardDelegate(self.table)
         self.table.setItemDelegate(self.card_delegate)
 
         self.central.layout.addWidget(self.table)
 
         # скрытые элементы (для совместимости интерфейса)
-        self.image_label = QLabel()
+        self.image_label: QLabel = QLabel()
         self.image_label.setVisible(False)
 
-        self.question_label = QLabel("")
+        self.question_label: QLabel = QLabel("")
         self.question_label.setVisible(False)
-        self.timer_label = QLabel("--:--")
+        
+        self.timer_label: QLabel = QLabel("--:--")
         self.timer_label.setVisible(False)
 
-        # конфетти оверлей (ИЗМЕНЕНО: было SnowOverlay)
-        self.confetti = ConfettiOverlay(self)
+        # конфетти оверлей
+        self.confetti: ConfettiOverlay = ConfettiOverlay(self)
         self.confetti.setGeometry(self.rect())
         self.confetti.raise_()
 
         # фон по умолчанию
-        self.set_background("pic/background_bthday2.jpg")
+        self.set_background("pic/background_xmas.jpg")
 
-    # прокидываем фон в BackgroundWidget
-    def set_background(self, path: str | None):
+    def set_background(self, path: Optional[str]) -> None:
+        """Установить фоновое изображение
+        
+        Args:
+            path: Путь к изображению или None для удаления фона
+        """
         if not path:
             self.central.set_background(None)
             return
@@ -117,58 +124,88 @@ class BigScreenWindow(QMainWindow):
 
         self.central.set_background(abs_path)
 
+    @staticmethod
+    @lru_cache(maxsize=10)
+    def _get_font_size_for_digits(digit_count: int) -> int:
+        """Получить размер шрифта в зависимости от количества цифр
+        
+        Кэшируется для оптимизации производительности.
+        
+        Args:
+            digit_count: Количество цифр в числе
+            
+        Returns:
+            Размер шрифта в пунктах
+        """
+        if digit_count <= 2:
+            return 34  # 0-99
+        elif digit_count == 3:
+            return 30  # 100-999
+        elif digit_count == 4:
+            return 26  # 1000-9999
+        else:
+            return 22  # 10000+
+
     def _get_adaptive_score_font(self, score: int) -> QFont:
-        """Адаптивный размер шрифта в зависимости от количества цифр"""
+        """Получить шрифт с адаптивным размером для очков
+        
+        Args:
+            score: Количество очков
+            
+        Returns:
+            QFont с адаптивным размером
+        """
         font = QFont(self.score_font)
         score_str = str(score)
         digit_count = len(score_str)
         
-        if digit_count <= 2:
-            font.setPointSize(34)  # 0-99
-        elif digit_count == 3:
-            font.setPointSize(30)  # 100-999
-        elif digit_count == 4:
-            font.setPointSize(26)  # 1000-9999
-        else:
-            font.setPointSize(22)  # 10000+
-        
+        # Используем кэшированную функцию
+        font_size = self._get_font_size_for_digits(digit_count)
+        font.setPointSize(font_size)
         return font
 
     @Slot(list)
-    def update_scores(self, teams):
+    def update_scores(self, teams: List[Team]) -> None:
+        """Обновить таблицу очков
+        
+        Args:
+            teams: Список объектов Team
+        """
         self.table.setRowCount(len(teams))
-        game_started = any(t["score"] > 0 for t in teams)
+        game_started: bool = any(t.score > 0 for t in teams)
 
-        medals = {0: "👑", 1: "🥈", 2: "🥉", 3: "🎖️", 4: "🐥", 5: "🤡"}
+        medals: dict[int, str] = {
+            0: "👑", 1: "🥈", 2: "🥉", 3: "🎖️", 4: "🐥", 5: "🤡"
+        }
 
-        num_font = QFont(self.row_font)
+        num_font: QFont = QFont(self.row_font)
         num_font.setPointSize(32)
         num_font.setBold(True)
 
-        available_height = self.table.viewport().height()
-        header_height = self.table.horizontalHeader().height()
-        row_count = len(teams) if len(teams) > 0 else 1
-        row_height = max(100, (available_height - header_height) // row_count)
+        available_height: int = self.table.viewport().height()
+        header_height: int = self.table.horizontalHeader().height()
+        row_count: int = len(teams) if len(teams) > 0 else 1
+        row_height: int = max(100, (available_height - header_height) // row_count)
 
         for i, t in enumerate(teams):
             # номер
-            num_item = QTableWidgetItem(str(i + 1))
+            num_item: QTableWidgetItem = QTableWidgetItem(str(i + 1))
             num_item.setTextAlignment(Qt.AlignCenter)
             num_item.setFont(num_font)
 
             # название команды с медалью
-            team_name = t["name"]
+            team_name: str = t.name
             if game_started and i in medals:
                 team_name = f"{medals[i]} {team_name}"
 
-            name_item = QTableWidgetItem(team_name)
+            name_item: QTableWidgetItem = QTableWidgetItem(team_name)
             name_item.setFont(self.row_font)
 
-            # очки с адаптивным размером шрифта (ИЗМЕНЕНО)
-            score_value = t["score"]
-            score_item = QTableWidgetItem(str(score_value))
+            # очки с адаптивным размером шрифта
+            score_value: int = t.score
+            score_item: QTableWidgetItem = QTableWidgetItem(str(score_value))
             score_item.setTextAlignment(Qt.AlignCenter)
-            score_item.setFont(self._get_adaptive_score_font(score_value))  # адаптивный шрифт
+            score_item.setFont(self._get_adaptive_score_font(score_value))
 
             self.table.setItem(i, 0, num_item)
             self.table.setItem(i, 1, name_item)
@@ -176,11 +213,12 @@ class BigScreenWindow(QMainWindow):
             self.table.setRowHeight(i, row_height)
 
         # определить, какая строка изменилась
-        old_scores = self._last_scores
-        self._last_scores = {t["name"]: t["score"] for t in teams}
-        changed_row = None
+        old_scores: dict[str, int] = self._last_scores
+        self._last_scores = {t.name: t.score for t in teams}
+        changed_row: Optional[int] = None
+        
         for i, t in enumerate(teams):
-            if old_scores.get(t["name"]) is not None and old_scores.get(t["name"]) != t["score"]:
+            if old_scores.get(t.name) is not None and old_scores.get(t.name) != t.score:
                 changed_row = i
 
         self._changed_row = changed_row
@@ -188,14 +226,29 @@ class BigScreenWindow(QMainWindow):
         self.card_delegate.set_changed_row(changed_row)
 
     @Slot(str)
-    def update_timer(self, text):
+    def update_timer(self, text: str) -> None:
+        """Обновить текст таймера
+        
+        Args:
+            text: Текст для отображения
+        """
         pass
 
     @Slot(str)
-    def set_question(self, text):
+    def set_question(self, text: str) -> None:
+        """Установить текст вопроса
+        
+        Args:
+            text: Текст вопроса
+        """
         pass
 
-    def set_round_image(self, path):
+    def set_round_image(self, path: Optional[str]) -> None:
+        """Установить изображение раунда
+        
+        Args:
+            path: Путь к изображению или None
+        """
         self.current_image = path
         if not path or not os.path.exists(path):
             self.image_label.clear()
@@ -203,28 +256,30 @@ class BigScreenWindow(QMainWindow):
             return
         pix = QPixmap(path)
         scaled = pix.scaled(
-            self.width() * 0.6,
-            self.height() * 0.35,
+            self.width() * 60 // 100,
+            self.height() * 35 // 100,
             Qt.KeepAspectRatio,
             Qt.SmoothTransformation,
         )
         self.image_label.setPixmap(scaled)
         self.image_label.setVisible(True)
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event) -> None:
+        """Обработка изменения размера окна"""
         super().resizeEvent(event)
-        self.confetti.setGeometry(self.rect())  # ИЗМЕНЕНО: было self.snow
+        self.confetti.setGeometry(self.rect())
         if self.current_image:
             self.set_round_image(self.current_image)
 
         if self.table.rowCount() > 0:
-            available_height = self.table.viewport().height()
-            header_height = self.table.horizontalHeader().height()
-            row_height = max(
+            available_height: int = self.table.viewport().height()
+            header_height: int = self.table.horizontalHeader().height()
+            row_height: int = max(
                 100, (available_height - header_height) // self.table.rowCount()
             )
             for i in range(self.table.rowCount()):
                 self.table.setRowHeight(i, row_height)
 
-    def wheelEvent(self, event):
+    def wheelEvent(self, event) -> None:
+        """Игнорировать колесо мыши"""
         event.ignore()
