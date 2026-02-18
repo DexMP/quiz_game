@@ -33,7 +33,15 @@ class TeamManager:
         if 0 <= idx < len(self.teams):
             del self.teams[idx]
     
-    def adjust(self, idx: int, delta: int) -> None:
+    def adjust(self, idx: float, delta: float) -> None:  # Было int, стало float
+        """Изменить очки команды"""
+        if 0 <= idx < len(self.teams):
+            self.teams[idx].add_score(delta)
+    
+    def set_score(self, idx: int, value: float) -> None:
+        """Установить конкретное количество очков"""
+        if 0 <= idx < len(self.teams):
+            self.teams[idx].score = value
         """Изменить очки команды
         
         Args:

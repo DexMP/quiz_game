@@ -95,6 +95,7 @@ class MainWindow(QMainWindow):
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.open_menu)
+        self.table.itemChanged.connect(self.on_item_changed)
         card_layout.addWidget(self.table)
         tb_layout.addWidget(self.table_card)
         left_col.addWidget(teams_box, 3)
@@ -310,24 +311,29 @@ class MainWindow(QMainWindow):
         m.exec(self.table.viewport().mapToGlobal(pos))
         self.refresh()
 
-
     def refresh(self):
-        # Используем отсортированный список команд
         sorted_teams = self.tm.get_sorted()
+        self.table.blockSignals(True)  # Блокируем сигналы, чтобы не вызвать on_item_changed при обновлении
         self.table.setRowCount(len(sorted_teams))
 
         for i, t in enumerate(sorted_teams):
-            # Название команды
+            # Название команды (не редактируемое)
             name_item = QTableWidgetItem(t.name)
+            name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable) 
             self.table.setItem(i, 0, name_item)
 
-            # Очки
-            score_item = QTableWidgetItem(str(t.score))
+            # Очки (редактируемые)
+            # Форматируем: если 8.0 -> "8", если 8.5 -> "8.5"
+            score_str = f"{t.score:g}" 
+            score_item = QTableWidgetItem(score_str)
             score_item.setTextAlignment(Qt.AlignCenter)
+            # Флаг ItemIsEditable по умолчанию есть, но лучше убедиться
+            score_item.setFlags(score_item.flags() | Qt.ItemIsEditable)
             self.table.setItem(i, 1, score_item)
 
             self.table.setRowHeight(i, 54)
 
+        self.table.blockSignals(False)
         self.hist.setPlainText(self.lg.get_text())
         self.big.update_scores(sorted_teams)
 
@@ -389,6 +395,27 @@ class MainWindow(QMainWindow):
         )
         if p:
             self.load_state(p)
+
+    # -------- обработка ручного изменения очков в таблице --------
+    def on_item_changed(self, item):
+        if item.column() == 1:  # Если изменили колонку с очками
+            row = item.row()
+            new_value_str = item.text().replace(',', '.') # Заменяем запятую на точку для float
+            
+            try:
+                new_value = round(float(new_value_str), 1) # Округляем до десятых
+                # Находим команду в оригинальном менеджере по имени из первой колонки
+                team_name = self.table.item(row, 0).text()
+                for idx, team in enumerate(self.tm.teams):
+                    if team.name == team_name:
+                        self.tm.set_score(idx, new_value)
+                        self.lg.log(f"Очки команды {team_name} изменены на {new_value}")
+                        break
+            except ValueError:
+                # Если ввели бред — просто игнорируем или возвращаем как было
+                pass
+            
+            self.refresh()
 
     # -------- тема --------
 

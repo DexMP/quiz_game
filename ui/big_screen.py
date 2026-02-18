@@ -152,32 +152,27 @@ class BigScreenWindow(QMainWindow):
         else:
             return 22  # 10000+
 
-    def _get_adaptive_score_font(self, score: int) -> QFont:
-        """Получить шрифт с адаптивным размером для очков
-        
-        Args:
-            score: Количество очков
-            
-        Returns:
-            QFont с адаптивным размером
-        """
+    def _get_adaptive_score_font(self, length: int) -> QFont:
+        """Получить шрифт в зависимости от кол-ва символов (включая точки)"""
         font = QFont(self.score_font)
-        score_str = str(score)
-        digit_count = len(score_str)
         
-        # Используем кэшированную функцию
-        font_size = self._get_font_size_for_digits(digit_count)
-        font.setPointSize(font_size)
+        if length <= 2:
+            size = 34
+        elif length == 3:
+            size = 30
+        elif length == 4:
+            size = 26
+        else:
+            size = 22
+            
+        font.setPointSize(size)
         return font
 
     @Slot(list)
     def update_scores(self, teams: List[Team]) -> None:
-        """Обновить таблицу очков
-        
-        Args:
-            teams: Список объектов Team
-        """
+        """Обновить таблицу очков с поддержкой дробных чисел"""
         self.table.setRowCount(len(teams))
+        # Проверяем старт игры (учитываем float)
         game_started: bool = any(t.score > 0 for t in teams)
 
         medals: dict[int, str] = {
@@ -194,12 +189,12 @@ class BigScreenWindow(QMainWindow):
         row_height: int = max(100, (available_height - header_height) // row_count)
 
         for i, t in enumerate(teams):
-            # номер
+            # 1. Номер команды
             num_item: QTableWidgetItem = QTableWidgetItem(str(i + 1))
             num_item.setTextAlignment(Qt.AlignCenter)
             num_item.setFont(num_font)
 
-            # название команды с медалью
+            # 2. Название команды с медалью
             team_name: str = t.name
             if game_started and i in medals:
                 team_name = f"{medals[i]} {team_name}"
@@ -207,33 +202,40 @@ class BigScreenWindow(QMainWindow):
             name_item: QTableWidgetItem = QTableWidgetItem(team_name)
             name_item.setFont(self.row_font)
 
-            # очки с адаптивным размером шрифта
-            score_value: int = t.score
-            score_item: QTableWidgetItem = QTableWidgetItem(str(score_value))
+            # 3. Очки (ГЛАВНОЕ ИЗМЕНЕНИЕ)
+            # Формат :g убирает лишние нули (.0), round гарантирует точность до десятых
+            score_str = f"{round(t.score, 1):g}"
+            score_item: QTableWidgetItem = QTableWidgetItem(score_str)
             score_item.setTextAlignment(Qt.AlignCenter)
-            score_item.setFont(self._get_adaptive_score_font(score_value))
+            
+            # Передаем длину строки для адаптации размера шрифта
+            # (так как "10.5" длиннее чем "10", шрифт должен подстроиться)
+            score_item.setFont(self._get_adaptive_score_font(len(score_str)))
 
             self.table.setItem(i, 0, num_item)
             self.table.setItem(i, 1, name_item)
             self.table.setItem(i, 2, score_item)
             self.table.setRowHeight(i, row_height)
 
-        # определить, какая строка изменилась
-        old_scores: dict[str, int] = self._last_scores
+        # Логика определения изменений для эффектов
+        old_scores: dict[str, float] = self._last_scores
         self._last_scores = {t.name: t.score for t in teams}
         changed_row: Optional[int] = None
         
         for i, t in enumerate(teams):
-            if old_scores.get(t.name) is not None and old_scores.get(t.name) != t.score:
+            if t.name in old_scores and old_scores[t.name] != t.score:
                 changed_row = i
 
         self._changed_row = changed_row
+        
+        # Эффект смены лидера
         if teams:
             current_leader = teams[0].name
             if not hasattr(self, '_prev_leader') or self._prev_leader != current_leader:
-                # Новый лидер! Вспышка!
-                self.flash_effect.flash(QColor(255, 215, 0))  # Золотая вспышка
+                if game_started: # Вспышка только если игра реально идет
+                    self.flash_effect.flash(QColor(255, 215, 0)) 
                 self._prev_leader = current_leader
+        
         self.card_delegate.set_leader_row(0 if teams else None)
         self.card_delegate.set_changed_row(changed_row)
 
