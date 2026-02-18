@@ -12,44 +12,27 @@ class TeamManager:
         self.teams: List[Team] = []
     
     def add_team(self, name: str) -> Team:
-        """Добавить новую команду
-        
-        Args:
-            name: Имя команды
-            
-        Returns:
-            Созданный объект Team
-        """
         team = Team(name=name)
         self.teams.append(team)
         return team
     
     def remove_by_index(self, idx: int) -> None:
-        """Удалить команду по индексу
-        
-        Args:
-            idx: Индекс команды
-        """
         if 0 <= idx < len(self.teams):
             del self.teams[idx]
     
-    def adjust(self, idx: float, delta: float) -> None:  # Было int, стало float
-        """Изменить очки команды"""
+    def adjust(self, idx: int, delta: float) -> None:
+        # Этот метод использовался в контекстном меню (ПКМ), там мы искали original_idx
+        # так что его можно оставить, но лучше переписать на имена тоже, если будет время.
+        # Пока оставим как есть, так как в open_menu логика правильная.
         if 0 <= idx < len(self.teams):
             self.teams[idx].add_score(delta)
     
-    def set_score(self, idx: int, value: float) -> None:
-        """Установить конкретное количество очков"""
-        if 0 <= idx < len(self.teams):
-            self.teams[idx].score = value
-        """Изменить очки команды
-        
-        Args:
-            idx: Индекс команды
-            delta: Изменение (может быть отрицательное)
-        """
-        if 0 <= idx < len(self.teams):
-            self.teams[idx].add_score(delta)
+    def set_score_by_name(self, name: str, new_value: float) -> None:
+        """Находим команду по имени и ставим ей очки"""
+        for team in self.teams:
+            if team.name == name:
+                team.score = new_value
+                break
     
     def get_sorted(self) -> List[Team]:
         """Получить команды отсортированные по очкам (убывание)
@@ -60,11 +43,6 @@ class TeamManager:
         return sorted(self.teams, key=lambda x: -x.score)
     
     def load_from(self, teams: Union[List[Dict], List[Team]]) -> None:
-        """Загрузить команды из списка словарей или Team объектов
-        
-        Args:
-            teams: Список словарей или Team объектов
-        """
         self.teams = []
         for team_data in teams:
             if isinstance(team_data, dict):
@@ -73,9 +51,4 @@ class TeamManager:
                 self.teams.append(team_data)
     
     def to_dict_list(self) -> List[Dict]:
-        """Конвертировать все команды в список словарей (для JSON)
-        
-        Returns:
-            Список словарей
-        """
         return [team.to_dict() for team in self.teams]

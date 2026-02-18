@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QFileDialog,
     QMenu,
-    QCheckBox,
+    QAbstractItemView,
 )
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction
@@ -312,22 +312,32 @@ class MainWindow(QMainWindow):
         self.refresh()
 
     def refresh(self):
+        # --- ГЛАВНОЕ ИСПРАВЛЕНИЕ "СТИРАНИЯ" ---
+        # Если таблица сейчас в режиме редактирования (пользователь печатает),
+        # мы НЕ обновляем её, чтобы не сбить фокус и текст.
+        if self.table.state() == QAbstractItemView.EditingState:
+            return
+        # --------------------------------------
+
         sorted_teams = self.tm.get_sorted()
-        self.table.blockSignals(True)  # Блокируем сигналы, чтобы не вызвать on_item_changed при обновлении
+        
+        # Если количество строк изменилось или мы просто хотим обновить данные
+        # Лучше не делать setRowCount каждый раз, если число не менялось, 
+        # но для простоты оставим, так как blockSignals спасает.
+        
+        self.table.blockSignals(True) 
         self.table.setRowCount(len(sorted_teams))
 
         for i, t in enumerate(sorted_teams):
-            # Название команды (не редактируемое)
+            # Название команды
             name_item = QTableWidgetItem(t.name)
             name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable) 
             self.table.setItem(i, 0, name_item)
 
-            # Очки (редактируемые)
-            # Форматируем: если 8.0 -> "8", если 8.5 -> "8.5"
+            # Очки
             score_str = f"{t.score:g}" 
             score_item = QTableWidgetItem(score_str)
             score_item.setTextAlignment(Qt.AlignCenter)
-            # Флаг ItemIsEditable по умолчанию есть, но лучше убедиться
             score_item.setFlags(score_item.flags() | Qt.ItemIsEditable)
             self.table.setItem(i, 1, score_item)
 
@@ -335,6 +345,8 @@ class MainWindow(QMainWindow):
 
         self.table.blockSignals(False)
         self.hist.setPlainText(self.lg.get_text())
+        
+        # Обновляем большой экран
         self.big.update_scores(sorted_teams)
 
     # -------- big screen --------
@@ -397,25 +409,43 @@ class MainWindow(QMainWindow):
             self.load_state(p)
 
     # -------- обработка ручного изменения очков в таблице --------
+
+    # В файле ui/main_window.py
+
     def on_item_changed(self, item):
-        if item.column() == 1:  # Если изменили колонку с очками
-            row = item.row()
-            new_value_str = item.text().replace(',', '.') # Заменяем запятую на точку для float
+        # 1. Проверяем колонку (1 - это очки)
+        if item.column() != 1: 
+            return
+
+        row = item.row()
+        
+        # 2. Получаем ИМЯ команды из соседней ячейки (колонка 0)
+        # Это критически важно, так как таблица отсортирована, а список команд нет.
+        name_item = self.table.item(row, 0)
+        if not name_item:
+            return
+        team_name = name_item.text()
+
+        # 3. Парсим число
+        try:
+            text = item.text().replace(',', '.')
+            value = float(text)
+        except ValueError:
+            return
+
+        # 4. Обновляем через новый метод в менеджере ПО ИМЕНИ
+        self.tm.set_score_by_name(team_name, value)
+
+        # 5. Красивое форматирование обратно в ячейку
+        formatted_text = "{:g}".format(value)
+        
+        if item.text() != formatted_text:
+            self.table.blockSignals(True)  # self.table, а не self.ui.tableWidget
+            item.setText(formatted_text)
+            self.table.blockSignals(False)
             
-            try:
-                new_value = round(float(new_value_str), 1) # Округляем до десятых
-                # Находим команду в оригинальном менеджере по имени из первой колонки
-                team_name = self.table.item(row, 0).text()
-                for idx, team in enumerate(self.tm.teams):
-                    if team.name == team_name:
-                        self.tm.set_score(idx, new_value)
-                        self.lg.log(f"Очки команды {team_name} изменены на {new_value}")
-                        break
-            except ValueError:
-                # Если ввели бред — просто игнорируем или возвращаем как было
-                pass
-            
-            self.refresh()
+        # Сразу обновляем большой экран, чтобы видно было изменения мгновенно
+        self.big.update_scores(self.tm.get_sorted())
 
     # -------- тема --------
 
