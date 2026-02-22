@@ -109,7 +109,7 @@ class BigScreenWindow(QMainWindow):
         self.flash_effect.hide()
 
         # фон по умолчанию
-        self.set_background("pic/background_bthday2.jpg")
+        self.set_background("pic/23_back.jpg")
 
     def set_background(self, path: Optional[str]) -> None:
         """Установить фоновое изображение
